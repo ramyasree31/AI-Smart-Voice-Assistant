@@ -1,0 +1,13 @@
+SpeechRecognition
+pyttsx3
+pyaudio
+openai
+python-dotenv
+requests
+transformers
+torch
+streamlit
+pyside6
+fastapi
+uvicorn[standard]
+faster-whisper

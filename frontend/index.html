@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Voice Assistant</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b1220;
+      color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 24%),
+                  radial-gradient(circle at right, rgba(34, 197, 94, 0.16), transparent 22%),
+                  #0b1220;
+    }
+
+    .app-shell {
+      width: min(1040px, 100%);
+      border-radius: 32px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero {
+      padding: 40px 38px 28px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 4vw, 3.4rem);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      color: #cbd5e1;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .button-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 26px;
+      border: none;
+      border-radius: 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      box-shadow: 0 18px 42px rgba(34, 197, 94, 0.2);
+    }
+
+    .button-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 22px 52px rgba(34, 197, 94, 0.24);
+    }
+
+    .button-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .status-chip {
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(148, 163, 184, 0.08);
+      color: #e2e8f0;
+      font-size: 0.95rem;
+    }
+
+    .panel {
+      display: grid;
+      gap: 24px;
+      padding: 0 38px 38px;
+    }
+
+    .card {
+      border-radius: 28px;
+      padding: 28px;
+      background: rgba(15, 23, 42, 0.86);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #f8fafc;
+    }
+
+    .message-stream {
+      display: grid;
+      gap: 16px;
+    }
+
+    .message {
+      max-width: 82%;
+      padding: 20px 22px;
+      border-radius: 22px;
+      background: rgba(30, 41, 59, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+      display: grid;
+      gap: 10px;
+      align-self: start;
+    }
+
+    .message.user {
+      margin-left: auto;
+      background: linear-gradient(180deg, rgba(34, 197, 94, 0.18), rgba(15, 23, 42, 0.92));
+    }
+
+    .message.assistant {
+      margin-right: auto;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.92));
+    }
+
+    .message label {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+
+    .message p {
+      margin: 0;
+      line-height: 1.75;
+      color: #e2e8f0;
+      white-space: pre-line;
+    }
+
+    .footer-note {
+      color: #94a3b8;
+      font-size: 0.92rem;
+    }
+
+    @media (min-width: 900px) {
+      .panel {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <h1>Smart Voice Assistant</h1>
+        <p>Always listening as a smart AI assistant. Speak naturally and let the assistant respond in a single chat view with smooth voice interaction.</p>
+      </div>
+
+      <div class="controls">
+        <div class="status-chip" id="status">Listening for wake word: say "hey assistant"</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <article class="card" style="padding-bottom: 16px;">
+        <div class="card-header">
+          <h2 class="card-title">Chat</h2>
+        </div>
+        <div class="message-stream" id="chatStream">
+          <div class="message assistant">
+            <label>Assistant</label>
+            <p>Hello! Wake me up by saying "hey assistant" and then give your command.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    const statusChip = document.getElementById('status');
+    const chatStream = document.getElementById('chatStream');
+    let assistantEnabled = false;
+    let assistantAwake = false;
+    let speechInProgress = false;
+    let restartOnSpeechEnd = false;
+    let conversationState = 'wake';
+    let lastReply = '';
+
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = true;
+
+    function setStatus(message) {
+      statusChip.textContent = message;
+    }
+
+    function appendMessage(role, content) {
+      const message = document.createElement('div');
+      message.className = `message ${role}`;
+      const label = document.createElement('label');
+      label.textContent = role === 'user' ? 'You' : 'Assistant';
+      const text = document.createElement('p');
+      text.textContent = content;
+      message.appendChild(label);
+      message.appendChild(text);
+      chatStream.appendChild(message);
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+
+      if (assistantEnabled && !speechInProgress) {
+        try {
+          restartOnSpeechEnd = true;
+          recognition.stop();
+        } catch (e) {
+          console.warn('Unable to stop recognition before speaking:', e);
+        }
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.onstart = () => {
+        speechInProgress = true;
+      };
+      utterance.onend = () => {
+        speechInProgress = false;
+        if (assistantEnabled && restartOnSpeechEnd) {
+          restartOnSpeechEnd = false;
+          try {
+            recognition.start();
+            setStatus('Listening for wake word: say "hey assistant"');
+          } catch (e) {
+            setStatus('Unable to restart listening after speaking. Refresh and allow mic access.');
+            assistantEnabled = false;
+          }
+        }
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    async function startAssistant() {
+      assistantEnabled = true;
+      assistantAwake = false;
+      conversationState = 'wake';
+      setStatus('Listening for wake word: say "hey assistant"');
+
+      try {
+        recognition.start();
+      } catch (error) {
+        setStatus('Microphone access blocked or unavailable. Refresh and allow mic access.');
+        assistantEnabled = false;
+      }
+    }
+
+    async function processCommand(commandText) {
+      setStatus('Checking request details...');
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/voice', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: commandText })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+
+        const data = await response.json();
+        lastReply = data.response || 'Sorry, I could not generate a response.';
+        appendMessage('assistant', lastReply);
+        speak(lastReply);
+        appendMessage('assistant', 'If you need anything else, just say "hey assistant" again.');
+        setStatus('Listening for wake word: say "hey assistant"');
+        conversationState = 'wake';
+        assistantAwake = false;
+      } catch (error) {
+        appendMessage('assistant', 'Unable to connect to backend. Please ensure the server is running.');
+        setStatus('Backend error. Say "hey assistant" to try again.');
+        conversationState = 'wake';
+      }
+    }
+
+    recognition.onresult = async (event) => {
+      if (speechInProgress) {
+        return;
+      }
+
+      const transcript = event.results[event.results.length - 1][0].transcript.trim();
+      if (!transcript) {
+        setStatus('No speech detected. Listening...');
+        return;
+      }
+
+      const normalized = transcript.toLowerCase();
+      const wakeCommandPattern = /^\s*(?:hey|hello|hi|wake up)\s+(?:assistant|ai|buddy|jarvis)\b[\s,;:!-]*(.*)$/i;
+      const wakeMatch = transcript.match(wakeCommandPattern);
+
+      if (!assistantAwake) {
+        if (wakeMatch) {
+          const commandAfterWake = wakeMatch[1].trim();
+          assistantAwake = true;
+
+          if (commandAfterWake) {
+            appendMessage('user', commandAfterWake);
+            await processCommand(commandAfterWake);
+          } else {
+            setStatus('Listening for your request...');
+            conversationState = 'awaitingRequest';
+          }
+        } else {
+          setStatus('Listening for wake word: say "hey assistant"');
+        }
+        return;
+      }
+
+      if (conversationState === 'awaitingRequest') {
+        if (transcript.length < 3) {
+          appendMessage('assistant', 'I did not catch that clearly. Please repeat your request.');
+          setStatus('Listening for your request...');
+          return;
+        }
+
+        appendMessage('user', transcript);
+        await processCommand(transcript);
+        return;
+      }
+
+
+      if (conversationState === 'followup') {
+        const confirmation = normalized.match(/\b(yes|yeah|yep|sure|ok|okay)\b/i);
+        const denial = normalized.match(/\b(no|nah|nope|not now)\b/i);
+
+        if (confirmation) {
+          appendMessage('assistant', 'Sure, I am ready for your next request.');
+          setStatus('Listening for wake word: say "hey assistant"');
+          conversationState = 'wake';
+          assistantAwake = false;
+          return;
+        }
+
+        if (denial) {
+          appendMessage('assistant', 'Alright. I am here if you need me again.');
+          setStatus('Listening for wake word: say "hey assistant"');
+          conversationState = 'wake';
+          assistantAwake = false;
+          return;
+        }
+
+        appendMessage('assistant', 'Please say yes if you want more help, or no if you are done.');
+        setStatus('Awaiting yes/no follow-up...');
+        return;
+      }
+
+      appendMessage('assistant', 'I am not sure what step we are on. Let’s start again. Say "hey assistant" when you are ready.');
+      conversationState = 'wake';
+      assistantAwake = false;
+      setStatus('Listening for wake word: say "hey assistant"');
+    };
+
+    recognition.onerror = (event) => {
+      const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+        ? 'Microphone permission denied.'
+        : 'Speech recognition error. Listening will restart.';
+      setStatus(message);
+    };
+
+    recognition.onend = () => {
+      if (assistantEnabled && !speechInProgress && !restartOnSpeechEnd) {
+        setStatus('Restarting listening…');
+        try {
+          recognition.start();
+        } catch (error) {
+          setStatus('Unable to restart recognition. Refresh and allow microphone access.');
+          assistantEnabled = false;
+        }
+      }
+    };
+
+    window.addEventListener('load', () => {
+      startAssistant();
+    });
+  </script>
+</body>
+</html>
