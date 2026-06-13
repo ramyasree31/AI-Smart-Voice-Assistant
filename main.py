@@ -12,11 +12,16 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import os
 from collections import defaultdict
-from services.ai_service import get_ai_response
+from assistant.ai_service import get_ai_response
+from assistant.speech_to_text import listen
+from assistant.core_process import process_command
+
+
+
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="frontend")
+templates = Jinja2Templates(directory="templates")
 
 # -----------------------------
 # CORS (for frontend)
@@ -50,17 +55,24 @@ class VoiceRequest(BaseModel):
     command: str
 
 
+
+
 # -----------------------------
 # HOME ROUTE → SERVE INDEX.HTML
 # -----------------------------
 @app.get("/", response_class=HTMLResponse)
 def index():
-    file_path = os.path.join("frontend", "index.html")
+    file_path = os.path.join("templates", "index.html")
 
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
+
+@app.get("/listen")
+def listen_endpoint():
+    text = listen()
+    return {"command": text}
 
 
 @app.get("/home", response_class=HTMLResponse)
@@ -73,33 +85,7 @@ def home(request:Request):
         "title": "Home"
     }
 )
-    
-    
-    
-#------------------------------
-# CORE LOGIC
-# -----------------------------
-def process_command(command: str):
-    global conversation
 
-    command = command.lower().strip()
-
-    if "stop" in command or "exit" in command:
-        return {"response": "Goodbye!"}
-
-    conversation.append({
-        "role": "user",
-        "content": command
-    })
-
-    ai_response = get_ai_response(conversation)
-
-    conversation.append({
-        "role": "assistant",
-        "content": ai_response
-    })
-
-    return {"response": ai_response}
 
 
 # -----------------------------
