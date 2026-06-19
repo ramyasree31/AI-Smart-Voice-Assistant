@@ -12,6 +12,7 @@ def get_ai_response(messages):
             timeout=60
         )
 
+        print(f"Sending {len(messages)} messages to Ollama")
         data = response.json()
         return data["message"]["content"]
 

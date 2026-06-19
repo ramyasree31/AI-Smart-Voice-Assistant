@@ -61,5 +61,5 @@
 #     f.write(audio.get_wav_data())
 
 # print("Saved test.wav")
-from services.ai_service import get_ai_response
+from assistant.ai_service import get_ai_response
 
