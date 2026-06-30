@@ -1,7 +1,7 @@
 import os
 import json
 import sys
-from assistant.weather_service import get_weather
+from services.weather_service import get_weather
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

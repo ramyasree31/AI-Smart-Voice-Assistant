@@ -328,6 +328,29 @@
         max-width: 75%;
       }
 
+      .alarm-msg {
+        align-self: flex-start;
+
+        background: #ff4d4d;
+
+        color: white;
+
+        padding: 15px;
+
+        border-radius: 15px;
+
+        max-width: 75%;
+
+        border: 2px solid #ffeeee;
+
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+        50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.15); }
+      }
+
       .user-msg {
         align-self: flex-end;
 
@@ -446,6 +469,87 @@
         font-size: 90px;
       }
 
+      .weather-card {
+        grid-area: calendar;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 18px 35px rgba(0, 0, 0, 0.18);
+        border-radius: 30px;
+        overflow: hidden;
+        min-height: 330px;
+        display: flex;
+        align-items: stretch;
+      }
+
+      .weather-card-inner {
+        width: 100%;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(24px);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .weather-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .weather-card-top img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .weather-subtitle {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        opacity: 0.75;
+        font-size: 12px;
+      }
+
+      .weather-card-temp {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+      }
+
+      #weatherTemp {
+        font-size: 56px;
+        font-weight: 700;
+      }
+
+      #weatherCondition {
+        opacity: 0.88;
+        font-size: 18px;
+      }
+
+      .weather-card-details {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .weather-card-details div {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .weather-card-status {
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 20px;
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
       /* ======================
    RECENT
 ====================== */
@@ -540,9 +644,12 @@
   <body>
     <div class="dashboard">
       <div class="sidebar">
-        <div class="profile">
-          <img src="https://ui-avatars.com/api/?name=R" />
-          <h3>Ramyasree</h3>
+        <div class="profile" id="profileSection">
+          <img id="profileAvatar" src="https://ui-avatars.com/api/?name=?" />
+          <h3 id="profileName">Guest</h3>
+          <div id="authActions">
+            <button id="loginBtn" onclick="window.location.href='/login'">Login</button>
+          </div>
         </div>
 
         <div class="nav">
@@ -626,11 +733,6 @@
               </div>
 
               <div class="context-card">
-                <h4>Weather</h4>
-                <p>Get current weather information</p>
-              </div>
-
-              <div class="context-card">
                 <h4>movie recommendations</h4>
                 <p>Get personalized movie suggestions</p>
               </div>
@@ -678,36 +780,223 @@
           </div>
         </div>
 
-        <div class="calendar">
-          <h3>Calendar</h3>
+        <div class="weather-card" id="weatherCard">
+          <div class="weather-card-inner" id="weatherCardInner">
+            <div class="weather-card-top">
+              <div>
+                <p class="weather-subtitle">Live Weather</p>
+                <h3 id="weatherCity">Detecting location...</h3>
+              </div>
+              <img id="weatherIcon" src="" alt="weather icon" />
+            </div>
 
-          <h1>10</h1>
+            <div class="weather-card-temp">
+              <span id="weatherTemp">--°C</span>
+              <span id="weatherCondition">Loading...</span>
+            </div>
 
-          <p>June 2026</p>
-        </div>
+            <div class="weather-card-details">
+              <div><strong>Feels like</strong><span id="weatherFeels">--°C</span></div>
+              <div><strong>Humidity</strong><span id="weatherHumidity">--%</span></div>
+              <div><strong>Wind</strong><span id="weatherWind">-- km/h</span></div>
+            </div>
 
-        <div class="calendar">
-          <h3>Calendar</h3>
-
-          <h1>10</h1>
-
-          <p>June 2026</p>
+            <div class="weather-card-status" id="weatherStatus">Waiting for location permission</div>
+          </div>
         </div>
 
         <div class="todo">
           <h3>📋 Todo List</h3>
 
-          <ul>
-            <li>✅ Complete Voice Assistant UI</li>
-            <li>🔄 Connect Ollama Backend</li>
-            <li>🎤 Add Speech Recognition</li>
-            <li>📅 Reminder System</li>
+          <form id="todoForm" onsubmit="event.preventDefault(); addTodo();">
+            <input type="text" id="todoTitle" placeholder="New todo title" required style="width:55%" />
+            <input type="datetime-local" id="todoDue" style="width:30%" />
+            <button type="submit">Add</button>
+          </form>
+
+          <ul id="todoList">
+            <!-- populated dynamically -->
           </ul>
         </div>
       </div>
     </div>
 
     <script>
+      async function logout() {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await fetch('/logout', {method:'POST',headers:{'Authorization':'Bearer '+token}}).catch(()=>{});
+        }
+        localStorage.removeItem('token');
+        document.getElementById('profileName').innerText = 'Guest';
+        document.getElementById('profileAvatar').src = 'https://ui-avatars.com/api/?name=?';
+        document.getElementById('authActions').innerHTML = '<button id="loginBtn" onclick="window.location.href=\'/login\'">Login</button>';
+      }
+
+      async function fetchMe() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch('/me', {headers:{'Authorization':'Bearer '+token}});
+        if (!resp.ok) { localStorage.removeItem('token'); return; }
+        const data = await resp.json();
+        document.getElementById('profileName').innerText = data.username || data.email;
+        document.getElementById('profileAvatar').src = 'https://ui-avatars.com/api/?name='+encodeURIComponent(data.username || data.email);
+        document.getElementById('authActions').innerHTML = '<button onclick="logout()">Logout</button>';
+        await loadConversations();
+        await loadTodos();
+      }
+
+      async function loadConversations() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch('/conversations', {headers:{'Authorization':'Bearer '+token}});
+        if (!resp.ok) return;
+        const list = await resp.json();
+        const historyListEl = document.getElementById('historyList');
+        historyListEl.innerHTML = '';
+        list.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'chat-item';
+          item.innerText = `${c.title} - ${c.last_message ? c.last_message.message : ''}`;
+          item.onclick = () => openConversation(c.id);
+          historyListEl.appendChild(item);
+        });
+      }
+
+      async function fetchDueReminders() {
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const headers = {'Content-Type': 'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const query = token ? '' : `?session_id=${encodeURIComponent(sessionId || '')}`;
+        try {
+          const resp = await fetch(`/reminders/due${query}`, {headers});
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (data.due_reminders && data.due_reminders.length) {
+            data.due_reminders.forEach(reminder => {
+              addAlarmMessage(reminder.message);
+            });
+          }
+        } catch (error) {
+          console.error('Unable to fetch due reminders', error);
+        }
+      }
+
+      // Todo functions
+      async function loadTodos() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch('/todos', {headers:{'Authorization':'Bearer '+token}});
+        if (!resp.ok) return;
+        const list = await resp.json();
+        renderTodos(list);
+      }
+
+      function renderTodos(list) {
+        const el = document.getElementById('todoList');
+        el.innerHTML = '';
+        list.forEach(t => {
+          const li = document.createElement('li');
+          let dueText = '';
+          if (t.due_at) {
+            const d = new Date(t.due_at);
+            dueText = ' — due ' + d.toLocaleString();
+          }
+          li.innerHTML = `${t.is_completed ? '✅' : '⬜'} <strong>${t.title}</strong>${dueText} <button style="margin-left:8px" onclick="completeTodo(${t.id})">Complete</button> <button onclick="editTodo(${t.id}, ${JSON.stringify(t.title)}, ${t.due_at ? `'${t.due_at}'` : 'null'})">Edit</button> <button onclick="deleteTodo(${t.id})">Delete</button>`;
+          el.appendChild(li);
+        });
+      }
+
+      async function addTodo() {
+        const title = document.getElementById('todoTitle').value.trim();
+        const due = document.getElementById('todoDue').value;
+        if (!title) return;
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const body = {title};
+        if (due) body.due_at = new Date(due).toISOString();
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const url = token ? '/todos' : `/todos?session_id=${encodeURIComponent(sessionId || '')}`;
+        const resp = await fetch(url, {method:'POST', headers, body: JSON.stringify(body)});
+        if (resp.ok) {
+          document.getElementById('todoTitle').value = '';
+          document.getElementById('todoDue').value = '';
+          await loadTodos();
+        } else {
+          alert('Unable to add todo');
+        }
+      }
+
+      async function completeTodo(id) {
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const url = token ? `/todos/${id}/complete` : `/todos/${id}/complete?session_id=${encodeURIComponent(sessionId || '')}`;
+        const resp = await fetch(url, {method:'POST', headers});
+        if (resp.ok) await loadTodos();
+      }
+
+      async function deleteTodo(id) {
+        if (!confirm('Delete this todo?')) return;
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const url = token ? `/todos/${id}` : `/todos/${id}?session_id=${encodeURIComponent(sessionId || '')}`;
+        const resp = await fetch(url, {method:'DELETE', headers});
+        if (resp.ok) await loadTodos();
+      }
+
+      async function editTodo(id, title, due_at) {
+        const newTitle = prompt('Edit title', title) || title;
+        let newDue = null;
+        if (confirm('Edit due date?')) {
+          const input = prompt('Enter due date/time (YYYY-MM-DD HH:MM) or leave blank to clear', due_at ? new Date(due_at).toLocaleString() : '');
+          if (input) {
+            // try to parse local datetime string
+            const parsed = new Date(input);
+            if (!isNaN(parsed)) newDue = parsed.toISOString();
+          }
+        }
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const url = token ? `/todos/${id}` : `/todos/${id}?session_id=${encodeURIComponent(sessionId || '')}`;
+        const resp = await fetch(url, {method:'PUT', headers, body: JSON.stringify({title: newTitle, due_at: newDue})});
+        if (resp.ok) await loadTodos(); else alert('Unable to update');
+      }
+
+      async function openConversation(id) {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch('/conversation/'+id, {headers:{'Authorization':'Bearer '+token}});
+        if (!resp.ok) return;
+        const data = await resp.json();
+        // render messages
+        const chatBox = document.getElementById('chatBox');
+        chatBox.innerHTML = '';
+        data.messages.forEach(m => {
+          const div = document.createElement('div');
+          div.className = m.sender === 'assistant' ? 'ai-msg' : 'user-msg';
+          div.innerText = m.message;
+          chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+        localStorage.setItem('current_conversation', id);
+      }
+
+      // initialize auth/profile on load
+      window.addEventListener('load', async () => { await fetchMe(); });
+
+      window.addEventListener('load', () => {
+        fetchDueReminders();
+        setInterval(fetchDueReminders, 20000);
+      });
+
       const chatBox = document.getElementById("chatBox");
       const voiceStatus = document.getElementById("voiceStatus");
       const voiceSubText = document.getElementById("voiceSubText");
@@ -766,6 +1055,16 @@
         speakText(text);
       }
 
+      function addAlarmMessage(text) {
+        addHistoryEntry("Alarm", text);
+        const div = document.createElement("div");
+        div.className = "alarm-msg";
+        div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        speakText(text);
+      }
+
       function speakText(text) {
         if (!speechSupported || !text) return;
         const utterance = new SpeechSynthesisUtterance(text);
@@ -783,6 +1082,12 @@
         await sendTextToBackend(text);
       }
 
+      // Global variables for device location
+      let deviceLocation = {
+        latitude: null,
+        longitude: null,
+      };
+
       async function sendTextToBackend(text) {
         const typing = document.createElement("div");
         typing.className = "typing";
@@ -791,17 +1096,29 @@
         chatBox.appendChild(typing);
 
         try {
-          const response = await fetch("/voice", {
+          const body = {
+            command: text,
+            device_lat: deviceLocation.latitude,
+            device_lon: deviceLocation.longitude,
+            conversation_id: localStorage.getItem('current_conversation') ? Number(localStorage.getItem('current_conversation')) : null,
+            session_id: localStorage.getItem('session_id') || null
+          };
+          const headers = { "Content-Type": "application/json" };
+          const token = localStorage.getItem('token');
+          if (token) headers['Authorization'] = 'Bearer '+token;
+
+          const response = await fetch("/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ command: text }),
+            headers,
+            body: JSON.stringify(body),
           });
 
           const data = await response.json();
           document.getElementById("typing").remove();
+          if (data.conversation_id) localStorage.setItem('current_conversation', data.conversation_id);
+          if (data.session_id) localStorage.setItem('session_id', data.session_id);
           addAIMessage(data.response);
           if (data.action && data.action.startsWith("play_music")) {
-            addAIMessage(data.response);
             showMusicPlayer(data.url, data.source, data.metadata);
           }
         } catch (err) {
@@ -829,7 +1146,18 @@
         } else if (audioUrl && isAudioStream) {
           // Use HTML5 audio player for direct audio stream
           console.log("Audio stream:", audioUrl);
-          audioPlayer.src = audioUrl;
+          
+          // Clear previous sources
+          audioPlayer.innerHTML = '';
+          
+          // Create source element with explicit MIME type
+          const sourceEl = document.createElement('source');
+          sourceEl.src = audioUrl;
+          sourceEl.type = 'audio/webm; codecs="opus"';
+          audioPlayer.appendChild(sourceEl);
+          
+          // Set crossOrigin and other attributes
+          audioPlayer.crossOrigin = 'anonymous';
           audioPlayer.style.display = "block";
           
           // Add event listeners for debugging
@@ -887,6 +1215,122 @@
         .addEventListener("keypress", function (e) {
           if (e.key === "Enter") sendMessage();
         });
+
+      const weatherCard = document.getElementById("weatherCard");
+      const weatherCardInner = document.getElementById("weatherCardInner");
+      const weatherCity = document.getElementById("weatherCity");
+      const weatherIcon = document.getElementById("weatherIcon");
+      const weatherTemp = document.getElementById("weatherTemp");
+      const weatherCondition = document.getElementById("weatherCondition");
+      const weatherFeels = document.getElementById("weatherFeels");
+      const weatherHumidity = document.getElementById("weatherHumidity");
+      const weatherWind = document.getElementById("weatherWind");
+      const weatherStatus = document.getElementById("weatherStatus");
+
+      function setWeatherState(state) {
+        weatherStatus.innerText = state;
+      }
+
+      function applyWeatherTheme(condition, isDay) {
+        const normalized = condition.toLowerCase();
+        if (!isDay) {
+          weatherCardInner.style.background = "linear-gradient(135deg,#141e30,#243b55)";
+          return;
+        }
+
+        if (normalized.includes("sun") || normalized.includes("clear")) {
+          weatherCardInner.style.background = "linear-gradient(135deg,#f6d365,#fda085)";
+        } else if (normalized.includes("cloud") || normalized.includes("overcast")) {
+          weatherCardInner.style.background = "linear-gradient(135deg,#757f9a,#d7dde8)";
+        } else if (normalized.includes("rain") || normalized.includes("drizzle") || normalized.includes("storm")) {
+          weatherCardInner.style.background = "linear-gradient(135deg,#4b79a1,#283e51)";
+        } else {
+          weatherCardInner.style.background = "linear-gradient(135deg,#5e6c96,#0f172a)";
+        }
+      }
+
+      function formatIcon(icon) {
+        return `https://openweathermap.org/img/wn/${icon}@2x.png`;
+      }
+
+      async function fetchWeather(lat, lon) {
+        console.log("fetchWeather called", { lat, lon });
+        if (lat == null || lon == null) {
+          console.warn("fetchWeather missing coordinates");
+          setWeatherState("Unable to load weather information");
+          return;
+        }
+
+        setWeatherState("Loading weather…");
+        try {
+          const response = await fetch(`/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+          console.log("weather fetch response", response.status);
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            setWeatherState(err.detail || "Unable to load weather information");
+            return;
+          }
+
+          const data = await response.json();
+          weatherCity.innerText = data.city || "Unknown location";
+          weatherTemp.innerText = `${data.temperature ?? "--"}°C`;
+          weatherCondition.innerText = data.condition || "Unknown";
+          weatherFeels.innerText = `${data.feels_like ?? "--"}°C`;
+          weatherHumidity.innerText = `${data.humidity ?? "--"}%`;
+          weatherWind.innerText = `${data.wind_speed ?? "--"} km/h`;
+          weatherIcon.src = formatIcon(data.icon);
+          weatherIcon.alt = data.condition || "Weather icon";
+          applyWeatherTheme(data.condition || "", data.is_day !== false);
+          setWeatherState(data.is_day ? "Day time" : "Night time");
+        } catch (error) {
+          console.error(error);
+          setWeatherState("Unable to load weather information");
+        }
+      }
+
+      function refreshWeather(lat, lon) {
+        fetchWeather(lat, lon);
+      }
+
+      function requestLocation() {
+        console.log("requestLocation called");
+        if (!navigator.geolocation) {
+          console.warn("Geolocation not supported");
+          setWeatherState("Geolocation is not supported by this browser.");
+          return;
+        }
+
+        setWeatherState("Requesting location…");
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log("Geolocation success", position.coords);
+            const { latitude, longitude } = position.coords;
+            // Store device location globally for voice commands
+            deviceLocation.latitude = latitude;
+            deviceLocation.longitude = longitude;
+            console.log("Device location stored:", deviceLocation);
+            fetchWeather(latitude, longitude);
+            setInterval(() => refreshWeather(latitude, longitude), 5 * 60 * 1000);
+          },
+          (error) => {
+            console.error("Geolocation error", error);
+            if (error.code === error.PERMISSION_DENIED) {
+              setWeatherState("Location permission denied.");
+            } else {
+              setWeatherState("Unable to determine location.");
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000,
+          }
+        );
+      }
+
+      window.addEventListener("load", () => {
+        requestLocation();
+      });
 
       // --- Speech Recognition (Web Speech API) ---
       let recognition;
@@ -950,6 +1394,7 @@
       // attach click to mic and voiceStatus
       micEl.addEventListener("click", toggleRecognition);
       voiceStatus.addEventListener("click", toggleRecognition);
+
     </script>
   </body>
 </html>

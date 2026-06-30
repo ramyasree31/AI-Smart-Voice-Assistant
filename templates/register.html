@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Smart Voice Assistant</title>
+    <style>
+      body { margin:0; font-family: Inter, sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#0d0718; color:#fff; }
+      .panel { width:360px; padding:32px; border-radius:24px; background:rgba(255,255,255,0.06); box-shadow:0 20px 40px rgba(0,0,0,0.35); }
+      .panel h1 { font-size:28px; margin-bottom:20px; }
+      .panel label { display:block; margin:14px 0 6px; font-size:14px; opacity:.8; }
+      .panel input { width:100%; padding:12px 14px; border:none; border-radius:14px; background:rgba(255,255,255,0.08); color:#fff; }
+      .panel button { margin-top:20px; width:100%; padding:14px; background:#7b2ff7; border:none; border-radius:14px; color:#fff; cursor:pointer; font-size:16px; }
+      .panel .muted { color:#a8a8a8; margin-top:12px; text-align:center; }
+      .panel a { color:#7b2ff7; text-decoration:none; }
+      .error { margin-top:12px; color:#ff8b8b; min-height:18px; }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Register</h1>
+      <div class="error" id="errorText"></div>
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="Your name" />
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+      <label for="confirmPassword">Confirm Password</label>
+      <input id="confirmPassword" type="password" placeholder="••••••••" />
+      <button onclick="doRegister()">Register</button>
+      <p class="muted">Already have an account? <a href="/login">Login</a></p>
+    </div>
+    <script>
+      async function doRegister() {
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const confirmPassword = document.getElementById('confirmPassword').value.trim();
+        const error = document.getElementById('errorText');
+        error.textContent = '';
+        if (!username || !email || !password || !confirmPassword) { error.textContent = 'All fields are required'; return; }
+        if (password !== confirmPassword) { error.textContent = 'Passwords do not match'; return; }
+        const resp = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await resp.json();
+        if (!resp.ok) { error.textContent = data.detail || 'Registration failed'; return; }
+        localStorage.setItem('token', data.access_token);
+        window.location.href = '/';
+      }
+    </script>
+  </body>
+</html>

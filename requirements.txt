@@ -11,3 +11,7 @@ pyside6
 fastapi
 uvicorn[standard]
 faster-whisper
+sqlalchemy
+pyjwt
+bcrypt
+alembic

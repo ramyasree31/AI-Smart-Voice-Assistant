@@ -10,6 +10,7 @@ def get_ai_response(messages):
                 "stream": False
             },
             timeout=60
+            #options={"temperature": 0.3}
         )
 
         print(f"Sending {len(messages)} messages to Ollama")

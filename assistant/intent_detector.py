@@ -56,7 +56,33 @@ def detect_intent(command):
     if "news" in command or "headline" in command:
         return "news", None
 
-    # Weather-related intents (including umbrella, rain, outdoor questions)
+    todo_keywords = [
+        "todo",
+        "to-do",
+        "task",
+        "tasks",
+        "add task",
+        "add todo",
+        "complete task",
+        "finish task",
+        "mark task",
+        "remind me to",
+    ]
+    if any(keyword in command for keyword in todo_keywords) and not any(word in command for word in ["music", "play", "song"]):
+        return "todo", command
+
+    reminder_keywords = [
+        "remind me",
+        "reminder",
+        "alarm",
+        "wake me",
+        "set alarm",
+        "set reminder",
+        "remind",
+    ]
+    if any(keyword in command for keyword in reminder_keywords) and not any(word in command for word in ["music", "play", "song"]):
+        return "reminder", command
+
     weather_keywords = [
         "weather",
         "temperature",
@@ -67,24 +93,11 @@ def detect_intent(command):
         "snow",
         "sunny",
         "cloudy",
-        "outside",
-        "raining",
-        "storm",
-        "wind",
-        "umbrella",
-        "jacket",
-        "go out",
-        "outside",
     ]
 
     if any(keyword in command for keyword in weather_keywords):
         city = _extract_city_from_weather_command(command)
-        
-        # Detect umbrella-specific queries
-        umbrella_keywords = ["umbrella", "need umbrella", "should i", "do i need", "rain coat", "jacket"]
-        is_umbrella_query = any(keyword in command for keyword in umbrella_keywords)
-        
-        return "weather", {"city": city, "is_umbrella_query": is_umbrella_query}
+        return "weather", {"city": city}
 
     if any(keyword in command for keyword in ["play", "listen", "song", "music", "pause", "resume", "next", "previous", "skip", "stop", "continue", "back", "add"]):
         if re.search(r"\b(next|skip)\b", command):

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Smart Voice Assistant</title>
+    <style>
+      body { margin:0; font-family: Inter, sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#0d0718; color:#fff; }
+      .panel { width:360px; padding:32px; border-radius:24px; background:rgba(255,255,255,0.06); box-shadow:0 20px 40px rgba(0,0,0,0.35); }
+      .panel h1 { font-size:28px; margin-bottom:20px; }
+      .panel label { display:block; margin:14px 0 6px; font-size:14px; opacity:.8; }
+      .panel input { width:100%; padding:12px 14px; border:none; border-radius:14px; background:rgba(255,255,255,0.08); color:#fff; }
+      .panel button { margin-top:20px; width:100%; padding:14px; background:#7b2ff7; border:none; border-radius:14px; color:#fff; cursor:pointer; font-size:16px; }
+      .panel .muted { color:#a8a8a8; margin-top:12px; text-align:center; }
+      .panel a { color:#7b2ff7; text-decoration:none; }
+      .error { margin-top:12px; color:#ff8b8b; min-height:18px; }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Login</h1>
+      <div class="error" id="errorText"></div>
+      <label for="identifier">Email or Username</label>
+      <input id="identifier" type="text" placeholder="you@example.com or username" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+      <button onclick="doLogin()">Login</button>
+      <p class="muted">Don't have an account? <a href="/register">Register</a></p>
+    </div>
+    <script>
+      async function doLogin() {
+        const identifier = document.getElementById('identifier').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const error = document.getElementById('errorText');
+        error.textContent = '';
+        if (!identifier || !password) { error.textContent = 'Enter email or username and password'; return; }
+        const resp = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
+        const data = await resp.json();
+        if (!resp.ok) { error.textContent = data.detail || 'Login failed'; return; }
+        localStorage.setItem('token', data.access_token);
+        window.location.href = '/';
+      }
+    </script>
+  </body>
+</html>
