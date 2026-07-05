@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat - Smart Voice Assistant</title>
+    <style>
+      body { margin:0; min-height:100vh; font-family:Inter,sans-serif; background:#0d0718; color:#fff; }
+      .page { max-width:980px; margin:0 auto; padding:24px; }
+      .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+      .topbar button { border:none; border-radius:14px; padding:10px 16px; background:#7b2ff7; color:#fff; cursor:pointer; }
+      .panel { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:24px; padding:20px; }
+      .chat-box { min-height:400px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; padding-right:8px; }
+      .message { background:rgba(255,255,255,0.08); border-radius:18px; padding:14px; max-width:85%; }
+      .message.user { align-self:flex-end; background:#7b2ff7; color:#000; }
+      .message.assistant { align-self:flex-start; }
+      .chat-input { display:flex; gap:12px; margin-top:16px; }
+      .chat-input input { flex:1; padding:14px 16px; border:none; border-radius:14px; background:rgba(255,255,255,0.08); color:#fff; }
+      .chat-input button { border:none; border-radius:14px; padding:14px 18px; background:#31cfff; color:#000; cursor:pointer; font-weight:700; }
+      .choice-buttons { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+      .choice-button { border:1px solid rgba(255,255,255,0.15); border-radius:999px; padding:8px 12px; background:rgba(255,255,255,0.08); color:#fff; cursor:pointer; }
+      .choice-button:hover { background:rgba(255,255,255,0.16); }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <button type="button" onclick="window.location.href='/'">← Back</button>
+        <h1>Chat</h1>
+      </div>
+      <div class="panel">
+        <div class="chat-box" id="chatBox">
+          <div class="message assistant">Hello! Ask me anything.</div>
+        </div>
+        <div class="chat-input">
+          <input id="messageInput" type="text" placeholder="Type your message..." />
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      function escapeHtml(text) {
+        return String(text || '').replace(/[&<>"]+/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[tag]));
+      }
+
+      function renderConversationMessage(role, content, choices = []) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${role}`;
+        const textNode = document.createElement('div');
+        textNode.innerText = content;
+        messageEl.appendChild(textNode);
+        if (choices.length) {
+          const buttonRow = document.createElement('div');
+          buttonRow.className = 'choice-buttons';
+          choices.forEach((choice) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'choice-button';
+            button.innerText = choice;
+            button.onclick = () => sendMessage(choice);
+            buttonRow.appendChild(button);
+          });
+          messageEl.appendChild(buttonRow);
+        }
+        document.getElementById('chatBox').appendChild(messageEl);
+        document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+      }
+
+      async function sendMessage(textOverride) {
+        const input = document.getElementById('messageInput');
+        const text = (textOverride || input.value).trim();
+        if (!text) return;
+        renderConversationMessage('user', text);
+        if (input) input.value = '';
+
+        const resp = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: text })
+        });
+        if (!resp.ok) {
+          renderConversationMessage('assistant', 'Unable to send message.');
+          return;
+        }
+        const data = await resp.json();
+        renderConversationMessage('assistant', data.response || 'No response', Array.isArray(data.choices) ? data.choices : []);
+      }
+    </script>
+  </body>
+</html>

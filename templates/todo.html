@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tasks - Smart Voice Assistant</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f5f5f5; color:#333; }
+      .app-container { display:flex; height:100vh; }
+      .sidebar { width:240px; background:#fff; border-right:1px solid #e0e0e0; padding:20px 0; overflow-y:auto; }
+      .sidebar-section { margin-bottom:24px; }
+      .sidebar-section h3 { font-size:12px; font-weight:600; text-transform:uppercase; color:#999; margin:0 20px 12px; }
+      .sidebar-item { padding:10px 20px; cursor:pointer; border-left:3px solid transparent; color:#666; font-size:14px; display:flex; justify-content:space-between; align-items:center; }
+      .sidebar-item:hover { background:#f9f9f9; }
+      .sidebar-item.active { border-left-color:#2196F3; color:#2196F3; font-weight:600; }
+      .sidebar-item .count { background:#e0e0e0; color:#666; font-size:12px; padding:2px 8px; border-radius:12px; }
+      .sidebar-add { padding:10px 20px; color:#2196F3; cursor:pointer; font-size:14px; }
+      .main-container { flex:1; display:flex; overflow:hidden; }
+      .task-list-area { width:45%; background:#fff; border-right:1px solid #e0e0e0; overflow-y:auto; padding:20px; }
+      .task-detail-area { width:55%; background:#fafafa; padding:30px; overflow-y:auto; }
+      .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+      .list-header h2 { margin:0; font-size:24px; color:#333; }
+      .add-task-btn { background:#2196F3; color:#fff; border:none; border-radius:4px; padding:8px 16px; cursor:pointer; font-size:14px; }
+      .task-item { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid #eee; cursor:pointer; }
+      .task-item.selected { background:#f0f7ff; padding:12px; margin:0 -12px; border-radius:4px; }
+      .task-checkbox { margin-top:4px; cursor:pointer; }
+      .task-item-content { flex:1; }
+      .task-item-title { font-size:14px; color:#333; margin:0; }
+      .task-item-title.completed { text-decoration:line-through; color:#999; }
+      .task-item-meta { display:flex; gap:8px; margin-top:4px; font-size:12px; color:#999; }
+      .task-badge { background:#fff3cd; color:#856404; padding:2px 6px; border-radius:3px; }
+      .task-badge.personal { background:#e8f5e9; color:#2e7d32; }
+      .task-badge.status { font-weight:700; margin-right:4px; }
+      .task-badge.status.completed { background:#e0f2f1; color:#00695c; }
+      .task-badge.status.pending { background:#fff3cd; color:#856404; }
+      .task-badge.status.upcoming { background:#e3f2fd; color:#1565c0; }
+      .task-badge.status.started { background:#f3e5f5; color:#6a1b9a; }
+      .repeat-day-group { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+      .repeat-day-btn { border:1px solid #ddd; border-radius:4px; background:#fafafa; color:#555; padding:6px 10px; font-size:12px; cursor:pointer; }
+      .repeat-day-btn.active { border-color:#2196F3; background:#e3f2fd; color:#0d47a1; }
+      .task-badge.repeat { background:#e8f0ff; color:#0b57d0; font-weight:600; margin-left:6px; }
+      .calendar-wrapper { background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; margin-bottom:20px; }
+      .calendar-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+      .calendar-header button { background:#f1f1f1; border:1px solid #ddd; border-radius:4px; padding:6px 10px; cursor:pointer; }
+      .calendar-header button:hover { background:#e0e0e0; }
+      .calendar-title { font-size:16px; font-weight:700; color:#333; }
+      .calendar-grid { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px; }
+      .calendar-day { min-height:60px; padding:8px; border-radius:8px; border:1px solid transparent; background:#fafafa; color:#333; font-size:14px; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; }
+      .calendar-day:hover { border-color:#bbb; background:#f5f7fb; }
+      .calendar-day.disabled { color:#bbb; background:#f5f5f5; cursor:default; }
+      .calendar-day.selected { border-color:#2196F3; background:#e3f2fd; color:#111; }
+      .calendar-day.has-task { position:relative; }
+      .calendar-day.has-task::after { content:''; position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:6px; height:6px; border-radius:50%; background:#2196F3; }
+      .calendar-day-label { font-size:12px; color:#666; margin-bottom:6px; }
+      .detail-section { margin-bottom:24px; }
+      .detail-section h3 { font-size:12px; font-weight:600; text-transform:uppercase; color:#999; margin:0 0 12px; }
+      .detail-field { margin-bottom:16px; }
+      .detail-label { font-size:12px; color:#666; font-weight:500; margin-bottom:4px; }
+      .detail-value { font-size:14px; color:#333; }
+      .detail-input { width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; }
+      .detail-select { width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; }
+      .subtask-list { display:flex; flex-direction:column; gap:8px; }
+      .subtask-item { display:flex; align-items:center; gap:0; justify-content:flex-start; margin-left:0; padding-left:0; }
+      .subtask-row { display:flex; align-items:center; gap:4px; justify-content:flex-start; margin-left:0; padding-left:0; }
+      .subtask-row .detail-input { flex:1; }
+      .subtask-item input[type="checkbox"], .subtask-row input[type="checkbox"] { margin:0 4px 0 0; flex-shrink:0; align-self:center; transform:scale(0.9); }
+      .subtask-item span, .subtask-item label { display:inline-block; margin-left:0; line-height:1.1; }
+      .subtask-title { margin-left:0; padding-left:0; font-size:13px; color:#555; }
+      .task-list-subtask { margin-top:2px; }
+      .task-list-subtasks { margin-top:4px; gap:4px; }
+      .subtask-remove-btn { border:none; background:#f1f1f1; color:#666; width:28px; height:28px; border-radius:50%; cursor:pointer; }
+      .add-subtask { color:#2196F3; cursor:pointer; font-size:14px; margin-top:8px; }
+      .detail-actions { display:flex; gap:12px; margin-top:24px; }
+      .detail-actions button { flex:1; padding:10px; border:1px solid #ddd; border-radius:4px; cursor:pointer; font-size:14px; }
+      .detail-actions button.save { background:#ffc107; color:#333; border:none; font-weight:600; transition:all 0.3s ease; }
+      .detail-actions button.mark-complete { background:#4caf50; color:#fff; border:none; font-weight:600; transition:all 0.3s ease; }
+      .detail-actions button.save:hover:not(:disabled), .detail-actions button.mark-complete:hover:not(:disabled) { filter:brightness(0.95); }
+      .detail-actions button:disabled { opacity:0.6; cursor:not-allowed; }
+      .detail-actions button.save:disabled, .detail-actions button.mark-complete:disabled { background:#ffc107; }
+      .empty-state { text-align:center; color:#999; padding:40px 20px; }
+      .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:2000; }
+      .modal { background:#fff; border-radius:8px; padding:24px; width:min(100%, 500px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+      .modal h2 { margin:0 0 20px; font-size:20px; color:#333; }
+      .modal-field { margin-bottom:16px; }
+      .modal-field label { display:block; font-size:13px; font-weight:500; color:#666; margin-bottom:6px; }
+      .modal-field input, .modal-field select, .modal-field textarea { width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; font-family:inherit; }
+      .modal-field textarea { min-height:80px; resize:vertical; }
+      .modal-footer { display:flex; gap:12px; justify-content:flex-end; margin-top:24px; }
+      .modal-footer button { padding:8px 16px; border:none; border-radius:4px; cursor:pointer; font-size:14px; }
+      .modal-footer .cancel-btn { background:#e0e0e0; color:#666; }
+      .modal-footer .cancel-btn:hover { background:#d0d0d0; }
+      .modal-footer .save-btn { background:#2196F3; color:#fff; }
+      .modal-footer .save-btn:hover { background:#1976D2; }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div style="padding:0 20px; margin-bottom:20px;">
+          <button type="button" onclick="window.location.href='/'" style="border:none; background:none; font-size:16px; cursor:pointer;">← Back</button>
+        </div>
+        
+        <div class="sidebar-section">
+          <h3>Tasks</h3>
+            <div class="sidebar-item" id="upcomingViewBtn">All Tasks <span class="count" id="upcomingCount">0</span></div>
+            <div class="sidebar-item active" id="todayViewBtn">Today  <span class="count" id="todayCount">0</span></div>
+            <div class="sidebar-item" id="calendarViewBtn">Calendar</div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Lists</h3>
+          <div class="sidebar-item" id="personalFilterBtn">Personal <span class="count" id="personalCount">0</span></div>
+          <div class="sidebar-item" id="workFilterBtn">Work <span class="count" id="workCount">0</span></div>
+          <div class="sidebar-add">+ Add New List</div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Tags</h3>
+          <div class="sidebar-item">Tag 1</div>
+          <div class="sidebar-item">Tag 2</div>
+          <div class="sidebar-add">+ Add Tag</div>
+        </div>
+
+        <div style="border-top:1px solid #eee; margin-top:20px; padding-top:20px;">
+          <div class="sidebar-item">Settings</div>
+          <div class="sidebar-item">Sign out</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-container">
+        <!-- Task List -->
+        <div class="task-list-area">
+          <div class="list-header">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <h2 id="taskListHeader">Today <span style="color:#2196F3; font-weight:normal;" id="taskListHeaderCount">0</span></h2>
+              <div id="taskFilterBar" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="sidebar-item" id="allTasksFilterBtn" style="padding:6px 10px; border-radius:999px; border:1px solid #ddd; background:#fff;">All</button>
+                <button type="button" class="sidebar-item" id="personalFilterBtnInline" style="padding:6px 10px; border-radius:999px; border:1px solid #ddd; background:#fff;">Personal</button>
+                <button type="button" class="sidebar-item" id="workFilterBtnInline" style="padding:6px 10px; border-radius:999px; border:1px solid #ddd; background:#fff;">Work</button>
+              </div>
+            </div>
+            <button class="add-task-btn" id="addTaskBtn">+ Add New Task</button>
+          </div>
+          <div id="calendarPanel"></div>
+          <div id="taskList"></div>
+        </div>
+
+        <!-- Task Detail -->
+        <div class="task-detail-area">
+          <div id="detailPanel" class="empty-state">Select a task to view details</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let selectedTaskId = null;
+      let allTasks = [];
+      let activeView = 'today';
+      let calendarDate = null;
+
+      function escapeHtml(text) {
+        return String(text || '').replace(/[&<>"]+/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[tag]));
+      }
+
+      function formatTaskDate(dateValue) {
+        if (!dateValue) return 'No date';
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) return dateValue;
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      }
+
+      function normalizeSubtaskText(text) {
+        return String(text || '').replace(/^\[x\]\s*/i, '').trim();
+      }
+
+      function collectNewTaskSubtasks() {
+        return Array.from(document.querySelectorAll('.new-task-subtask-row'))
+          .map(row => {
+            const input = row.querySelector('.new-task-subtask-input');
+            const value = normalizeSubtaskText(input ? input.value : '');
+            return value || '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      }
+
+      function addNewTaskSubtaskRow(value = '', completed = false) {
+        const container = document.getElementById('newTaskSubtasksList');
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'subtask-row new-task-subtask-row';
+        row.innerHTML = `
+          <input type="text" class="detail-input new-task-subtask-input" placeholder="Enter subtask title" value="${escapeHtml(value)}" />
+          <button type="button" class="subtask-remove-btn" onclick="removeNewTaskSubtask(this)">×</button>
+        `;
+        container.appendChild(row);
+        const input = row.querySelector('.new-task-subtask-input');
+        if (input) input.focus();
+      }
+
+      function removeNewTaskSubtask(button) {
+        const row = button && button.closest('.new-task-subtask-row');
+        if (row) row.remove();
+      }
+
+      function getTaskStatus(task) {
+        if (task.is_completed) {
+          return { label: 'Completed', klass: 'completed' };
+        }
+        const today = new Date().toISOString().split('T')[0];
+        if (task.date === today) {
+          return { label: 'Started', klass: 'started' };
+        }
+        return { label: 'Pending', klass: 'pending' };
+      }
+
+      function getSelectedRepeatDays(prefix) {
+        return Array.from(document.querySelectorAll(`.${prefix}-repeat-day-btn.active`)).map(btn => btn.dataset.day);
+      }
+
+      function setSelectedRepeatDays(prefix, days) {
+        const allButtons = document.querySelectorAll(`.${prefix}-repeat-day-btn`);
+        allButtons.forEach(btn => {
+          btn.classList.toggle('active', days.includes(btn.dataset.day));
+        });
+      }
+
+      function toggleRepeatDay(prefix, button) {
+        if (!button) return;
+        button.classList.toggle('active');
+      }
+
+      function updateDetailRepeatFields() {
+        const repeat = document.getElementById('detailRepeat');
+        const repeatDaysContainer = document.getElementById('detailRepeatDaysContainer');
+        if (!repeat || !repeatDaysContainer) return;
+        if (repeat.value === 'daily') {
+          repeatDaysContainer.style.display = 'none';
+        } else if (repeat.value === 'weekdays' || repeat.value === 'custom') {
+          repeatDaysContainer.style.display = '';
+          if (repeat.value === 'weekdays') {
+            setSelectedRepeatDays('detail', ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+          }
+        } else {
+          repeatDaysContainer.style.display = 'none';
+        }
+      }
+
+      function getAuthHeaders() {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return { headers, token };
+      }
+
+      function getSessionQuery() {
+        const sessionId = localStorage.getItem('session_id');
+        return sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : '';
+      }
+
+      function getTaskReferenceDate(task) {
+        if (task.date) return task.date;
+        if (task.due_at) return task.due_at.split('T')[0];
+        return null;
+      }
+
+      function taskMatchesDate(task, dateString) {
+        const taskDate = getTaskReferenceDate(task);
+        if (taskDate === dateString) {
+          return true;
+        }
+        if (!task.recurrence || task.recurrence === 'one_time') {
+          return false;
+        }
+        if (taskDate && taskDate > dateString) {
+          return false;
+        }
+        const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const selectedWeekday = weekdayNames[new Date(dateString).getDay()];
+        if (task.recurrence === 'daily') {
+          return true;
+        }
+        if (task.recurrence === 'weekdays') {
+          return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(selectedWeekday);
+        }
+        if (task.recurrence === 'custom' && task.repeat_days) {
+          const repeatDays = task.repeat_days.split(',').map(d => d.trim()).filter(Boolean);
+          return repeatDays.includes(selectedWeekday);
+        }
+        return false;
+      }
+
+      function getVisibleTasks() {
+        if (activeView === 'calendar') {
+          const dateToFilter = calendarDate || new Date().toISOString().split('T')[0];
+          return allTasks.filter(task => taskMatchesDate(task, dateToFilter));
+        }
+        if (activeView === 'today') {
+          const today = new Date().toISOString().split('T')[0];
+          return allTasks.filter(task => {
+            const taskDate = getTaskReferenceDate(task);
+            return !taskDate || taskDate === today;
+          });
+        }
+        if (activeView === 'personal') {
+          return allTasks.filter(task => (task.category || 'Personal') === 'Personal');
+        }
+        if (activeView === 'work') {
+          return allTasks.filter(task => (task.category || 'Personal') === 'Work');
+        }
+        return allTasks;
+      }
+
+      function updateSidebarSelection() {
+        document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+        const activeButtonId = activeView === 'personal'
+          ? 'personalFilterBtn'
+          : activeView === 'work'
+            ? 'workFilterBtn'
+            : activeView === 'upcoming'
+              ? 'upcomingViewBtn'
+              : activeView === 'today'
+                ? 'todayViewBtn'
+                : activeView === 'calendar'
+                  ? 'calendarViewBtn'
+                  : null;
+        const activeButton = activeButtonId ? document.getElementById(activeButtonId) : null;
+        if (activeButton) activeButton.classList.add('active');
+
+        const inlineButtonId = activeView === 'personal' ? 'personalFilterBtnInline' : activeView === 'work' ? 'workFilterBtnInline' : 'allTasksFilterBtn';
+        document.querySelectorAll('#taskFilterBar button').forEach(btn => btn.classList.remove('active'));
+        const inlineButton = document.getElementById(inlineButtonId);
+        if (inlineButton) inlineButton.classList.add('active');
+      }
+
+      function updateCalendarPanel() {
+        const panel = document.getElementById('calendarPanel');
+        if (activeView !== 'calendar') {
+          panel.innerHTML = '';
+          return;
+        }
+        const selectedDate = calendarDate || new Date().toISOString().split('T')[0];
+        const [year, month] = selectedDate.split('-').map(Number);
+        const currentMonth = new Date(year, month - 1, 1);
+        const monthName = currentMonth.toLocaleString('default', { month: 'long' });
+        const firstWeekday = currentMonth.getDay();
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        const days = [];
+        for (let i = 0; i < firstWeekday; i++) {
+          days.push(null);
+        }
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          days.push(dateString);
+        }
+
+        panel.innerHTML = `
+          <div class="calendar-wrapper">
+            <div class="calendar-header">
+              <button type="button" id="calendarPrevMonth">‹</button>
+              <div class="calendar-title">${monthName} ${year}</div>
+              <button type="button" id="calendarNextMonth">›</button>
+            </div>
+            <div class="calendar-grid">
+              <div class="calendar-day disabled">Sun</div>
+              <div class="calendar-day disabled">Mon</div>
+              <div class="calendar-day disabled">Tue</div>
+              <div class="calendar-day disabled">Wed</div>
+              <div class="calendar-day disabled">Thu</div>
+              <div class="calendar-day disabled">Fri</div>
+              <div class="calendar-day disabled">Sat</div>
+              ${days.map(dateString => {
+                if (!dateString) return '<div class="calendar-day disabled"></div>';
+                const hasTask = allTasks.some(task => taskMatchesDate(task, dateString));
+                const isSelected = dateString === selectedDate;
+                return `
+                  <div class="calendar-day ${hasTask ? 'has-task' : ''} ${isSelected ? 'selected' : ''}" data-date="${dateString}">
+                    <span class="calendar-day-label">${new Date(dateString).getDate()}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+
+        document.getElementById('calendarPrevMonth').addEventListener('click', () => {
+          const prev = new Date(year, month - 2, 1);
+          calendarDate = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-01`;
+          renderView();
+        });
+        document.getElementById('calendarNextMonth').addEventListener('click', () => {
+          const next = new Date(year, month, 1);
+          calendarDate = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-01`;
+          renderView();
+        });
+
+        panel.querySelectorAll('.calendar-day[data-date]').forEach(dayCell => {
+          dayCell.addEventListener('click', () => {
+            calendarDate = dayCell.dataset.date;
+            renderView();
+          });
+        });
+      }
+
+      function renderView() {
+        updateSidebarSelection();
+        updateCalendarPanel();
+        const visibleTasks = getVisibleTasks();
+        const today = new Date().toISOString().split('T')[0];
+        const todayCount = allTasks.filter(task => !task.date || task.date === today).length;
+        const allTasksCount = allTasks.length;
+        const personalCount = allTasks.filter(task => (task.category || 'Personal') === 'Personal').length;
+        const workCount = allTasks.filter(task => (task.category || 'Personal') === 'Work').length;
+        document.getElementById('todayCount').textContent = todayCount;
+        document.getElementById('upcomingCount').textContent = allTasksCount;
+        document.getElementById('personalCount').textContent = personalCount;
+        document.getElementById('workCount').textContent = workCount;
+
+        const header = document.getElementById('taskListHeader');
+        const headerCount = document.getElementById('taskListHeaderCount');
+        if (activeView === 'calendar') {
+          header.textContent = 'Calendar';
+          header.appendChild(headerCount);
+          headerCount.textContent = visibleTasks.length;
+        } else if (activeView === 'today') {
+          header.textContent = 'Today';
+          header.appendChild(headerCount);
+          headerCount.textContent = visibleTasks.length;
+        } else if (activeView === 'personal') {
+          header.textContent = 'Personal';
+          header.appendChild(headerCount);
+          headerCount.textContent = visibleTasks.length;
+        } else if (activeView === 'work') {
+          header.textContent = 'Work';
+          header.appendChild(headerCount);
+          headerCount.textContent = visibleTasks.length;
+        } else {
+          header.textContent = 'All Tasks';
+          header.appendChild(headerCount);
+          headerCount.textContent = visibleTasks.length;
+        }
+
+        renderTaskList(visibleTasks);
+      }
+
+      async function loadTodos() {
+        const { headers, token } = getAuthHeaders();
+        const sessionId = localStorage.getItem('session_id');
+        if (!token && !sessionId) localStorage.setItem('session_id', 'session-' + Math.random().toString(36).substr(2, 9));
+        const url = token ? '/todos' : `/todos${getSessionQuery()}`;
+        try {
+          const resp = await fetch(url, { headers });
+          if (!resp.ok) return;
+          allTasks = await resp.json();
+          renderView();
+        } catch (error) {
+          console.error('Unable to load todos', error);
+        }
+      }
+
+      function renderTaskList(list) {
+        const el = document.getElementById('taskList');
+        el.innerHTML = '';
+        if (!list.length) {
+          el.innerHTML = '<div class="empty-state">No tasks yet.</div>';
+          return;
+        }
+        list.forEach((task) => {
+          const item = document.createElement('div');
+          item.className = 'task-item' + (selectedTaskId === task.id ? ' selected' : '');
+          const subCount = (task.subtasks || '').split('\n').filter(s => s.trim()).length;
+          const status = getTaskStatus(task);
+          const subtasks = (task.subtasks || '').split('\n').filter(s => s.trim());
+
+          const taskCheckbox = document.createElement('input');
+          taskCheckbox.type = 'checkbox';
+          taskCheckbox.className = 'task-checkbox';
+          taskCheckbox.checked = !!task.is_completed;
+          taskCheckbox.disabled = !!task.is_completed;
+          taskCheckbox.onclick = (event) => {
+            event.stopPropagation();
+            toggleComplete(task.id, taskCheckbox.checked);
+          };
+
+          const content = document.createElement('div');
+          content.className = 'task-item-content';
+
+          const title = document.createElement('p');
+          title.className = `task-item-title ${task.is_completed ? 'completed' : ''}`;
+          title.textContent = task.title || 'Untitled';
+          content.appendChild(title);
+
+          const meta = document.createElement('div');
+          meta.className = 'task-item-meta';
+          if (task.date) {
+            const dateSpan = document.createElement('span');
+            dateSpan.textContent = `📅 ${formatTaskDate(task.date)}`;
+            meta.appendChild(dateSpan);
+          }
+          if (subCount) {
+            const subSpan = document.createElement('span');
+            subSpan.textContent = `📋 ${subCount} Subtasks`;
+            meta.appendChild(subSpan);
+          }
+          const statusSpan = document.createElement('span');
+          statusSpan.className = `task-badge status ${status.klass}`;
+          statusSpan.textContent = status.label;
+          meta.appendChild(statusSpan);
+          const categorySpan = document.createElement('span');
+          categorySpan.className = `task-badge ${task.category ? task.category.toLowerCase() : 'personal'}`;
+          categorySpan.textContent = task.category || 'Personal';
+          meta.appendChild(categorySpan);
+          content.appendChild(meta);
+
+          if (subCount) {
+            const subtaskList = document.createElement('div');
+            subtaskList.className = 'subtask-list task-list-subtasks';
+            subtasks.forEach((sub, i) => {
+              const completed = /^\[x\]/i.test(sub);
+              const text = sub.replace(/^\[x\]\s*/i, '').trim();
+              const subtaskRow = document.createElement('div');
+              subtaskRow.className = 'subtask-item task-list-subtask';
+              const subtaskCheckbox = document.createElement('input');
+              subtaskCheckbox.type = 'checkbox';
+              subtaskCheckbox.checked = completed;
+              subtaskCheckbox.disabled = !!task.is_completed;
+              subtaskCheckbox.onclick = (event) => {
+                event.stopPropagation();
+                toggleSubtask(task.id, i, subtaskCheckbox.checked);
+              };
+              const subtaskTitle = document.createElement('span');
+              subtaskTitle.className = 'subtask-title';
+              subtaskTitle.textContent = text;
+              subtaskRow.appendChild(subtaskCheckbox);
+              subtaskRow.appendChild(subtaskTitle);
+              subtaskList.appendChild(subtaskRow);
+            });
+            content.appendChild(subtaskList);
+          }
+
+          item.appendChild(taskCheckbox);
+          item.appendChild(content);
+          item.addEventListener('click', () => selectTask(task.id));
+          el.appendChild(item);
+        });
+      }
+
+      function selectTask(id) {
+        selectedTaskId = id;
+        renderTaskList(getVisibleTasks());
+        const task = allTasks.find(t => t.id === id);
+        if (task) renderTaskDetail(task);
+      }
+
+      function renderTaskDetail(task) {
+        const panel = document.getElementById('detailPanel');
+        const isDisabled = task.is_completed ? 'disabled' : '';
+        const subtasks = (task.subtasks || '').split('\n').filter(s => s.trim());
+        const subtasksHtml = subtasks.map((sub, i) => {
+          const completed = /^\[x\]/i.test(sub);
+          const text = sub.replace(/^\[x\]\s*/i, '').trim();
+          return `
+            <div class="subtask-item">
+              <input type="checkbox" ${isDisabled} onchange="toggleSubtask(${task.id}, ${i}, this.checked)" ${completed ? 'checked' : ''} />
+              <span class="subtask-title">${escapeHtml(text)}</span>
+            </div>
+          `;
+        }).join('');
+
+        panel.innerHTML = `
+          <div class="detail-section">
+            <h3>Task Details</h3>
+            <div class="detail-field">
+              <div class="detail-label">Status</div>
+              <div class="detail-value"><span class="task-badge status ${getTaskStatus(task).klass}">${getTaskStatus(task).label}</span></div>
+            </div>
+            <div class="detail-field">
+              <div class="detail-label">Title</div>
+              <input type="text" class="detail-input" id="detailTitle" value="${escapeHtml(task.title || '')}" ${isDisabled} />
+            </div>
+            <div class="detail-field">
+              <div class="detail-label">Description</div>
+              <textarea class="detail-input" id="detailDescription" style="min-height:100px;" ${isDisabled}>${escapeHtml(task.description || '')}</textarea>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>List</h3>
+            <select class="detail-select" id="detailCategory" ${isDisabled}>
+              <option value="Personal" ${task.category === 'Personal' ? 'selected' : ''}>Personal</option>
+              <option value="Work" ${task.category === 'Work' ? 'selected' : ''}>Work</option>
+              <option value="Test" ${task.category === 'Test' ? 'selected' : ''}>Test</option>
+            </select>
+          </div>
+
+          <div class="detail-section">
+            <h3>Schedule</h3>
+            <div class="modal-field">
+              <label>Repeat</label>
+              <select class="detail-select" id="detailRepeat" ${isDisabled} onchange="updateDetailRepeatFields()">
+                <option value="one_time">One-time</option>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Mon-Fri</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div id="detailRepeatDaysContainer" style="display:none; margin-top:8px;">
+              <div class="detail-label">Repeat days</div>
+              <div class="repeat-day-group" id="detailRepeatDays">
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Sun" onclick="toggleRepeatDay('detail', this)">Sun</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Mon" onclick="toggleRepeatDay('detail', this)">Mon</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Tue" onclick="toggleRepeatDay('detail', this)">Tue</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Wed" onclick="toggleRepeatDay('detail', this)">Wed</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Thu" onclick="toggleRepeatDay('detail', this)">Thu</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Fri" onclick="toggleRepeatDay('detail', this)">Fri</button>
+                <button type="button" class="repeat-day-btn detail-repeat-day-btn" data-day="Sat" onclick="toggleRepeatDay('detail', this)">Sat</button>
+              </div>
+            </div>
+
+            <div id="detailDueDateContainer" style="margin-top:8px;">
+              <div class="modal-field">
+                <label>Due Date</label>
+                <input type="date" class="detail-input" id="detailDueDate" value="${task.date || ''}" ${isDisabled} />
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Reminder</h3>
+            <div class="modal-field">
+              <label>Reminder time</label>
+              <input type="time" class="detail-input" id="detailReminder" value="${task.reminder || ''}" ${isDisabled} />
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Subtasks</h3>
+            <div class="subtask-list" id="detailSubtasksList">${subtasksHtml}</div>
+            ${task.is_completed ? '<div style="color:#666; font-size:13px; margin-top:8px;">Completed tasks cannot be edited.</div>' : '<div class="add-subtask" onclick="addSubtask()">+ Add New Subtask</div>'}
+          </div>
+
+          <div class="detail-actions">
+            <button onclick="deleteTask(${task.id})">Delete Task</button>
+            <button class="save mark-complete" onclick="toggleComplete(${task.id}, true)" ${task.is_completed ? 'disabled' : ''}>${task.is_completed ? 'Completed' : 'Mark complete'}</button>
+            <button class="save" onclick="saveTaskDetail(${task.id})" ${isDisabled}>Save changes</button>
+          </div>
+        `;
+
+        // set repeat selection and initialize visibility
+        const repeatEl = document.getElementById('detailRepeat');
+        if (repeatEl) {
+          repeatEl.value = task.recurrence || 'one_time';
+        }
+        const dueDateEl = document.getElementById('detailDueDate');
+        if (dueDateEl && !dueDateEl.value) dueDateEl.value = task.date || new Date().toISOString().split('T')[0];
+        updateDetailRepeatFields();
+      }
+
+      async function toggleComplete(id, checked) {
+        const { headers, token } = getAuthHeaders();
+        const url = token ? `/todos/${id}` : `/todos/${id}${getSessionQuery()}`;
+        const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify({ is_completed: !!checked }) });
+        if (!response.ok) {
+          alert('Unable to update task completion');
+          return;
+        }
+        await loadTodos();
+        if (selectedTaskId === id) {
+          selectTask(id);
+        }
+      }
+
+      async function toggleSubtask(id, index, checked) {
+        const task = allTasks.find(t => t.id === id);
+        if (!task) return;
+        const lines = (task.subtasks || '').split('\n');
+        const raw = (lines[index] || '').trim();
+        const text = raw.replace(/^\[x\]\s*/i, '').replace(/^\[ \]\s*/i, '');
+        lines[index] = checked ? '[x] ' + text : text;
+        const newSubtasks = lines.join('\n');
+        const { headers, token } = getAuthHeaders();
+        const url = token ? `/todos/${id}` : `/todos/${id}${getSessionQuery()}`;
+        await fetch(url, { method: 'PUT', headers, body: JSON.stringify({ subtasks: newSubtasks }) });
+        await loadTodos();
+      }
+
+      async function saveTaskDetail(id) {
+        const title = document.getElementById('detailTitle').value.trim();
+        if (!title) { alert('Task title is required'); return; }
+        
+        const saveBtn = event.target;
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        
+        try {
+          const repeatType = document.getElementById('detailRepeat') ? document.getElementById('detailRepeat').value : 'one_time';
+          const repeatDays = getSelectedRepeatDays('detail');
+          let date = document.getElementById('detailDueDate') ? document.getElementById('detailDueDate').value : null;
+          if (!date) {
+            const today = new Date();
+            date = today.toISOString().split('T')[0];
+          }
+          
+          const { headers, token } = getAuthHeaders();
+          const url = token ? `/todos/${id}` : `/todos/${id}${getSessionQuery()}`;
+          const reminderTime = document.getElementById('detailReminder').value;
+          const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify({
+            title,
+            description: document.getElementById('detailDescription').value.trim(),
+            date,
+            category: document.getElementById('detailCategory').value,
+            reminder: reminderTime || '',
+            recurrence: repeatType || 'one_time',
+            repeat_days: repeatDays.join(',')
+          })});
+          
+          if (!response.ok) throw new Error('Failed to save task');
+          
+          saveBtn.textContent = '✓ Saved';
+          await loadTodos();
+          setTimeout(() => {
+            if (saveBtn.textContent === '✓ Saved') {
+              saveBtn.textContent = originalText;
+            }
+          }, 2000);
+        } catch (error) {
+          alert('Error saving task: ' + error.message);
+          saveBtn.textContent = originalText;
+        } finally {
+          saveBtn.disabled = false;
+        }
+      }
+
+      async function deleteTask(id) {
+        if (!confirm('Delete this task?')) return;
+        const { headers, token } = getAuthHeaders();
+        const url = token ? `/todos/${id}` : `/todos/${id}${getSessionQuery()}`;
+        await fetch(url, { method: 'DELETE', headers });
+        selectedTaskId = null;
+        
+        // Clear detail panel
+        const panel = document.getElementById('detailPanel');
+        panel.className = 'empty-state';
+        panel.innerHTML = 'Select a task to view details';
+        
+        await loadTodos();
+      }
+
+      async function addSubtask() {
+        const container = document.getElementById('detailSubtasksList');
+        if (!selectedTaskId || !container) return;
+
+        const draftRow = document.createElement('div');
+        draftRow.className = 'subtask-row';
+        draftRow.innerHTML = `
+          <input type="checkbox" disabled />
+          <input type="text" class="detail-input detail-subtask-input" placeholder="Type subtask title" />
+          <button type="button" class="subtask-remove-btn" onclick="this.closest('.subtask-row').remove()">×</button>
+          <button type="button" class="subtask-remove-btn" onclick="saveDraftSubtask(this.closest('.subtask-row'))" style="width:auto; padding:0 8px; border-radius:999px;">Add</button>
+        `;
+        container.appendChild(draftRow);
+
+        const input = draftRow.querySelector('.detail-subtask-input');
+        if (input) {
+          input.focus();
+          input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              saveDraftSubtask(draftRow);
+            }
+          });
+        }
+      }
+
+      async function saveDraftSubtask(row) {
+        if (!row) return;
+        const input = row.querySelector('.detail-subtask-input');
+        const text = normalizeSubtaskText(input ? input.value : '');
+        if (!text) {
+          row.remove();
+          return;
+        }
+
+        const task = allTasks.find(t => t.id === selectedTaskId);
+        if (!task) return;
+
+        const lines = (task.subtasks || '').split('\n').map(line => line.trim()).filter(Boolean);
+        lines.push(text);
+        const { headers, token } = getAuthHeaders();
+        const url = token ? `/todos/${selectedTaskId}` : `/todos/${selectedTaskId}${getSessionQuery()}`;
+        const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify({ subtasks: lines.join('\n') }) });
+        if (!response.ok) {
+          alert('Unable to save subtask');
+          return;
+        }
+        await loadTodos();
+        if (selectedTaskId) selectTask(selectedTaskId);
+      }
+
+      function openAddTaskModal() {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'addTaskModalOverlay';
+        overlay.innerHTML = `
+          <div class="modal">
+            <h2>Add New Task</h2>
+            <div class="modal-field">
+              <label>Task Title *</label>
+              <input type="text" id="newTaskTitle" placeholder="Enter task title" autofocus />
+            </div>
+            <div class="modal-field">
+              <label>Description</label>
+              <textarea id="newTaskDescription" placeholder="Add task description..."></textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="modal-field">
+                <label>Category</label>
+                <select id="newTaskCategory">
+                  <option value="Personal">Personal</option>
+                  <option value="Work">Work</option>
+                  <option value="Test">Test</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-field">
+              <label>Repeat</label>
+              <select id="newTaskRepeat">
+                <option value="one_time" selected>One-time</option>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Mon-Fri</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div id="newTaskRepeatDaysContainer" style="display:none; margin-top:8px;">
+              <div class="detail-label">Repeat days</div>
+              <div class="repeat-day-group" id="newTaskRepeatDays">
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Sun" onclick="toggleRepeatDay('newTask', this)">Sun</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Mon" onclick="toggleRepeatDay('newTask', this)">Mon</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Tue" onclick="toggleRepeatDay('newTask', this)">Tue</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Wed" onclick="toggleRepeatDay('newTask', this)">Wed</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Thu" onclick="toggleRepeatDay('newTask', this)">Thu</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Fri" onclick="toggleRepeatDay('newTask', this)">Fri</button>
+                <button type="button" class="repeat-day-btn newTask-repeat-day-btn" data-day="Sat" onclick="toggleRepeatDay('newTask', this)">Sat</button>
+              </div>
+            </div>
+
+            <div id="newTaskDueDateContainer" style="margin-top:8px;">
+              <div class="modal-field">
+                <label>Due Date</label>
+                <input type="date" id="newTaskDueDate" />
+              </div>
+            </div>
+
+            <div class="modal-field">
+              <label>Reminder time</label>
+              <input type="time" id="newTaskReminder" />
+            </div>
+            <div class="modal-field">
+              <label>Subtasks</label>
+              <div id="newTaskSubtasksList" class="subtask-list"></div>
+              <div class="add-subtask" onclick="addNewTaskSubtaskRow()">+ Add New Subtask</div>
+            </div>
+            <div class="modal-footer">
+              <button class="cancel-btn" onclick="closeAddTaskModal()">Cancel</button>
+              <button class="save-btn" onclick="createNewTask()">Add Task</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('newTaskTitle').focus();
+        addNewTaskSubtaskRow();
+
+        // initialize repeat controls
+        const recSel = document.getElementById('newTaskRepeat');
+        const repeatDaysContainer = document.getElementById('newTaskRepeatDaysContainer');
+        const dueDateEl = document.getElementById('newTaskDueDate');
+        const today = new Date().toISOString().split('T')[0];
+        dueDateEl.value = today;
+
+        function updateRepeatFields() {
+          if (recSel.value === 'daily') {
+            repeatDaysContainer.style.display = 'none';
+          } else if (recSel.value === 'weekdays') {
+            repeatDaysContainer.style.display = '';
+            setSelectedRepeatDays('newTask', ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+          } else if (recSel.value === 'custom') {
+            repeatDaysContainer.style.display = '';
+          } else {
+            repeatDaysContainer.style.display = 'none';
+          }
+        }
+
+        recSel.addEventListener('change', updateRepeatFields);
+        updateRepeatFields();
+
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeAddTaskModal();
+        });
+      }
+
+      function closeAddTaskModal() {
+        const overlay = document.getElementById('addTaskModalOverlay');
+        if (overlay) overlay.remove();
+      }
+
+      async function createNewTask() {
+        const title = document.getElementById('newTaskTitle').value.trim();
+        if (!title) { alert('Task title is required'); return; }
+        
+        const description = document.getElementById('newTaskDescription').value.trim();
+        const category = document.getElementById('newTaskCategory').value;
+        const reminder = document.getElementById('newTaskReminder').value;
+        const repeatType = document.getElementById('newTaskRepeat').value;
+        const repeatDays = getSelectedRepeatDays('newTask');
+        const subtasks = collectNewTaskSubtasks();
+
+        let date = document.getElementById('newTaskDueDate').value;
+        if (!date) {
+          const today = new Date();
+          date = today.toISOString().split('T')[0];
+        }
+        
+        const { headers, token } = getAuthHeaders();
+        const url = token ? '/todos' : `/todos${getSessionQuery()}`;
+        const resp = await fetch(url, { 
+          method: 'POST', 
+          headers, 
+          body: JSON.stringify({ 
+            title, 
+            description, 
+            category, 
+            date,
+            reminder: reminder || '',
+            recurrence: repeatType || 'one_time',
+            repeat_days: repeatDays.join(','),
+            subtasks 
+          }) 
+        });
+        
+        if (resp.ok) {
+          closeAddTaskModal();
+          await loadTodos();
+        } else {
+          alert('Unable to create task');
+        }
+      }
+
+      document.getElementById('addTaskBtn').addEventListener('click', openAddTaskModal);
+
+      window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('openAddTask') === '1') {
+          openAddTaskModal();
+        }
+
+        document.getElementById('todayViewBtn').addEventListener('click', () => {
+          activeView = 'today';
+          renderView();
+        });
+        document.getElementById('upcomingViewBtn').addEventListener('click', () => {
+          activeView = 'upcoming';
+          renderView();
+        });
+        document.getElementById('personalFilterBtn').addEventListener('click', () => {
+          activeView = 'personal';
+          renderView();
+        });
+        document.getElementById('workFilterBtn').addEventListener('click', () => {
+          activeView = 'work';
+          renderView();
+        });
+        document.getElementById('allTasksFilterBtn').addEventListener('click', () => {
+          activeView = 'upcoming';
+          renderView();
+        });
+        document.getElementById('personalFilterBtnInline').addEventListener('click', () => {
+          activeView = 'personal';
+          renderView();
+        });
+        document.getElementById('workFilterBtnInline').addEventListener('click', () => {
+          activeView = 'work';
+          renderView();
+        });
+        document.getElementById('calendarViewBtn').addEventListener('click', () => {
+          activeView = 'calendar';
+          if (!calendarDate) {
+            calendarDate = new Date().toISOString().split('T')[0];
+          }
+          renderView();
+        });
+        loadTodos();
+      });
+    </script>
+  </body>
+</html>

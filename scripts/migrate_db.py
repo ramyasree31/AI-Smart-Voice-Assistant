@@ -57,25 +57,94 @@ if not cur.fetchone():
             user_id INTEGER,
             session_id TEXT,
             title TEXT NOT NULL,
-            due_at DATETIME NOT NULL,
+            description TEXT,
+            date TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            priority TEXT DEFAULT 'Medium',
+            category TEXT DEFAULT 'Personal',
+            status TEXT DEFAULT 'pending',
+            due_at DATETIME,
             is_completed BOOLEAN DEFAULT 0,
-                is_notified BOOLEAN DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            is_notified BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     conn.commit()
 else:
     print('reminders table already exists')
 
-# Add is_notified to reminders if missing
+# Add reminder columns if missing or rebuild if the legacy schema still uses NOT NULL due_at
 cur.execute("PRAGMA table_info(reminders)")
-reminder_cols = [r[1] for r in cur.fetchall()]
-if 'is_notified' not in reminder_cols:
-    print('Adding is_notified column to reminders')
-    cur.execute("ALTER TABLE reminders ADD COLUMN is_notified BOOLEAN DEFAULT 0")
+reminder_info = cur.fetchall()
+reminder_cols = [r[1] for r in reminder_info]
+reminder_notnull = {r[1]: r[3] for r in reminder_info}
+needs_reminder_rebuild = any(
+    col not in reminder_cols
+    for col in ['description', 'date', 'start_time', 'end_time', 'priority', 'category', 'status', 'updated_at']
+) or reminder_notnull.get('due_at') == 1
+if needs_reminder_rebuild:
+    print('Rebuilding reminders table with the modern schema')
+    cur.execute('''
+        CREATE TABLE reminders_new (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            session_id TEXT,
+            title TEXT NOT NULL,
+            description TEXT,
+            date TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            priority TEXT DEFAULT 'Medium',
+            category TEXT DEFAULT 'Personal',
+            status TEXT DEFAULT 'pending',
+            due_at DATETIME,
+            is_completed BOOLEAN DEFAULT 0,
+            is_notified BOOLEAN DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cur.execute('''
+        INSERT INTO reminders_new (
+            id, user_id, session_id, title, description, date, start_time, end_time,
+            priority, category, status, due_at, is_completed, is_notified, created_at, updated_at
+        )
+        SELECT
+            id, user_id, session_id, title,
+            description,
+            date,
+            start_time,
+            end_time,
+            COALESCE(priority, 'Medium'),
+            COALESCE(category, 'Personal'),
+            CASE WHEN COALESCE(status, '') = '' THEN CASE WHEN is_completed = 1 THEN 'completed' ELSE 'pending' END ELSE status END,
+            due_at,
+            is_completed,
+            is_notified,
+            created_at,
+            COALESCE(updated_at, created_at)
+        FROM reminders
+    ''')
+    cur.execute('DROP TABLE reminders')
+    cur.execute('ALTER TABLE reminders_new RENAME TO reminders')
     conn.commit()
 else:
-    print('is_notified column already exists')
+    for col, ddl in [
+        ('description', "ALTER TABLE reminders ADD COLUMN description TEXT"),
+        ('date', "ALTER TABLE reminders ADD COLUMN date TEXT"),
+        ('start_time', "ALTER TABLE reminders ADD COLUMN start_time TEXT"),
+        ('end_time', "ALTER TABLE reminders ADD COLUMN end_time TEXT"),
+        ('priority', "ALTER TABLE reminders ADD COLUMN priority TEXT DEFAULT 'Medium'"),
+        ('category', "ALTER TABLE reminders ADD COLUMN category TEXT DEFAULT 'Personal'"),
+        ('status', "ALTER TABLE reminders ADD COLUMN status TEXT DEFAULT 'pending'"),
+        ('updated_at', "ALTER TABLE reminders ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        if col not in reminder_cols:
+            print(f'Adding {col} column to reminders')
+            cur.execute(ddl)
+            conn.commit()
 
 cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='todo_items'")
 if not cur.fetchone():

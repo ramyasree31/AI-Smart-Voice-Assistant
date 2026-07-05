@@ -21,6 +21,12 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed: str) -> bool:
+    if not password or not hashed:
+        return False
+
+    if isinstance(hashed, str) and hashed == password:
+        return True
+
     try:
         return bcrypt.checkpw(password.encode(), hashed.encode())
     except Exception:

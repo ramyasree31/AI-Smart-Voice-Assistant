@@ -47,7 +47,7 @@ def _extract_city_from_weather_command(command: str) -> str:
 
 
 def detect_intent(command):
-    """Detect user intent: greeting, music, news, weather, or info."""
+    """Detect user intent: greeting, music, news, weather, task creation, or info."""
     command = command.lower().strip()
 
     if command in ["hello", "hi", "hey", "wake up"]:
@@ -56,20 +56,23 @@ def detect_intent(command):
     if "news" in command or "headline" in command:
         return "news", None
 
-    todo_keywords = [
-        "todo",
-        "to-do",
-        "task",
-        "tasks",
-        "add task",
-        "add todo",
-        "complete task",
-        "finish task",
-        "mark task",
-        "remind me to",
+    task_create_patterns = [
+        r"\badd to do list\b",
+        r"\badd todo\b",
+        r"\badd todo list\b",r"\badd task\b",
+        r"\bcreate task\b",
+        r"\bremember to\b",
+        r"\bremind me to\b",
+        r"\bput .* on my to[- ]?do list\b",
+        r"\badd this to my tasks\b",
+        r"\badd this to my task(s)?\b",
     ]
-    if any(keyword in command for keyword in todo_keywords) and not any(word in command for word in ["music", "play", "song"]):
-        return "todo", command
+    reminder_time_pattern = r"\b(at|by|before|after|on|tomorrow|today|in)\b.*\b(\d{1,2})(?::\d{2})?\s*(am|pm)?\b"
+
+    if any(re.search(pattern, command) for pattern in task_create_patterns):
+        if re.search(r"\bremind me to\b", command) and re.search(reminder_time_pattern, command):
+            return "reminder", command
+        return "task_create", command
 
     reminder_keywords = [
         "remind me",
@@ -99,7 +102,19 @@ def detect_intent(command):
         city = _extract_city_from_weather_command(command)
         return "weather", {"city": city}
 
-    if any(keyword in command for keyword in ["play", "listen", "song", "music", "pause", "resume", "next", "previous", "skip", "stop", "continue", "back", "add"]):
+    music_keywords = [
+        "play",
+        "song",
+        "music",
+        "album",
+        "artist",
+        "playlist",
+        "queue",
+        "next track",
+        "add this song to queue",
+    ]
+
+    if any(keyword in command for keyword in music_keywords):
         if re.search(r"\b(next|skip)\b", command):
             return "music", {"action": "next_track"}
         if re.search(r"\b(previous|back)\b", command):
@@ -108,7 +123,7 @@ def detect_intent(command):
             return "music", {"action": "pause_music"}
         if re.search(r"\b(resume|continue)\b", command):
             return "music", {"action": "resume_music"}
-        if re.search(r"\b(add .* to queue|queue .* up|add)\b", command):
+        if re.search(r"\b(add .* to queue|queue .* up|add this song to queue)\b", command):
             query = _clean_music_query(command)
             return "music", {"action": "add_to_queue", "query": query or None}
 

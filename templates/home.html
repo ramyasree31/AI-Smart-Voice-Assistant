@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿<!-- <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -891,43 +891,77 @@
       // --- Speech Recognition (Web Speech API) ---
       let recognition;
       let recognizing = false;
+      let autoListeningEnabled = true;
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      let lastTranscript = "";
+      let lastTranscriptTime = 0;
 
       if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = "en-US";
+        recognition.continuous = true;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
           recognizing = true;
-          voiceStatus.innerText = "Listening...";
-          voiceSubText.innerText = "Speak now";
+          voiceStatus.innerText = "Always listening";
+          voiceSubText.innerText = "Speak naturally";
           micEl.style.background = "rgba(255,255,255,0.25)";
         };
 
         recognition.onend = () => {
           recognizing = false;
-          voiceStatus.innerText = "Click to speak";
-          voiceSubText.innerText = "Speak naturally";
           micEl.style.background = "rgba(255,255,255,0.2)";
+          if (autoListeningEnabled) {
+            try {
+              recognition.start();
+            } catch (e) {
+              console.warn(e);
+            }
+          } else {
+            voiceStatus.innerText = "Listening paused";
+            voiceSubText.innerText = "Click mic to resume";
+          }
         };
 
         recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
+          const transcript = event.results[event.resultIndex][0].transcript.trim();
+          const now = Date.now();
+          if (transcript && transcript === lastTranscript && now - lastTranscriptTime < 3000) {
+            return;
+          }
+          lastTranscript = transcript;
+          lastTranscriptTime = now;
           addUserMessage(transcript);
           sendTextToBackend(transcript);
         };
 
         recognition.onerror = (e) => {
           console.error("Speech recognition error", e);
-          addAIMessage("Speech recognition error");
+          if (autoListeningEnabled) {
+            try {
+              recognition.start();
+            } catch (err) {
+              console.warn(err);
+            }
+          }
         };
       } else {
         // not supported
         voiceStatus.innerText = "Speech recognition not supported";
         voiceSubText.style.opacity = 0.7;
+      }
+
+      function ensureRecognitionRunning() {
+        if (!recognition || !autoListeningEnabled || recognizing) return;
+        try {
+          recognition.start();
+        } catch (e) {
+          console.warn(e);
+        }
       }
 
       function toggleRecognition() {
@@ -936,20 +970,24 @@
           return;
         }
 
-        if (!recognizing) {
-          try {
-            recognition.start();
-          } catch (e) {
-            console.warn(e);
+        autoListeningEnabled = !autoListeningEnabled;
+        if (!autoListeningEnabled) {
+          if (recognizing) {
+            recognition.stop();
           }
-        } else {
-          recognition.stop();
+          voiceStatus.innerText = "Listening paused";
+          voiceSubText.innerText = "Click mic to resume";
+          micEl.style.background = "rgba(255,255,255,0.2)";
+          return;
         }
+
+        ensureRecognitionRunning();
       }
 
       // attach click to mic and voiceStatus
       micEl.addEventListener("click", toggleRecognition);
       voiceStatus.addEventListener("click", toggleRecognition);
+      window.addEventListener("load", ensureRecognitionRunning);
     </script>
   </body>
-</html>
+</html> -->

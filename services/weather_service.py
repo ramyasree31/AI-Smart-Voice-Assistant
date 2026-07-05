@@ -85,9 +85,18 @@ def _fetch_weather(query: str) -> dict:
     wind_speed = current.get("wind_kph")
     is_day = current.get("is_day", 1) == 1
     
-    # Get icon - WeatherAPI provides icon code/URL, use a generic mapping
-    condition_code = current.get("condition", {}).get("code", 1000)
-    icon = f"{condition_code:02d}d"
+    condition = current.get("condition", {})
+    icon_value = condition.get("icon")
+    if icon_value:
+        if icon_value.startswith("//"):
+            icon = f"https:{icon_value}"
+        elif icon_value.startswith("http"):
+            icon = icon_value
+        else:
+            icon = icon_value
+    else:
+        condition_code = condition.get("code", 1000)
+        icon = f"{condition_code:02d}d"
 
     weather_data = {
         "city": location.get("name", "Unknown").title(),

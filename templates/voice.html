@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Control - Smart Voice Assistant</title>
+    <style>
+      body { margin:0; min-height:100vh; font-family:Inter,sans-serif; background:#0d0718; color:#fff; }
+      .page { max-width:800px; margin:0 auto; padding:24px; }
+      .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+      .topbar button { border:none; border-radius:14px; padding:10px 16px; background:#7b2ff7; color:#fff; cursor:pointer; }
+      .panel { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:24px; padding:24px; }
+      .voice-status { margin-bottom:20px; font-size:16px; color:#d1d1d1; }
+      .mic-button { width:160px; height:160px; border-radius:50%; border:none; background:linear-gradient(135deg,#7b2ff7,#31cfff); color:#000; font-size:24px; cursor:pointer; }
+      .instructions { margin-top:24px; color:#c4c4c4; line-height:1.6; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <button type="button" onclick="window.location.href='/'">← Back</button>
+        <h1>Voice Control</h1>
+      </div>
+      <div class="panel">
+        <p class="voice-status">Use the microphone to control the assistant with your voice.</p>
+        <button class="mic-button" onclick="startListening()">🎤 Speak</button>
+        <p class="instructions">Click the button and speak naturally. Your voice command will be processed by the assistant.</p>
+      </div>
+    </div>
+    <script>
+      function startListening() {
+        alert('Voice listening is not active in this demo route.');
+      }
+    </script>
+  </body>
+</html>

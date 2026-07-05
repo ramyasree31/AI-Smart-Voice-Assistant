@@ -306,14 +306,277 @@
         background: rgba(123, 47, 247, 1);
       }
 
-      .hidden {
-        display: none;
+      .history-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(4, 4, 10, 0.8);
+        backdrop-filter: blur(16px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        z-index: 1000;
+      }
+
+      .history-modal {
+        width: min(1100px, 100%);
+        max-height: 90vh;
+        background: rgba(13, 18, 36, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 28px;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        overflow: hidden;
+      }
+
+      .history-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .history-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 11px;
+        opacity: 0.7;
+        margin-bottom: 6px;
+      }
+
+      .history-close {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        cursor: pointer;
+      }
+
+      .history-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .history-search {
+        flex: 1;
+        min-width: 260px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+      }
+
+      .history-search input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: white;
+        font-size: 14px;
+      }
+
+      .history-primary-btn,
+      .history-secondary-btn,
+      .history-action-btn {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+
+      .history-primary-btn {
+        background: linear-gradient(135deg, #7b2ff7, #31cfff);
+        color: white;
+      }
+
+      .history-secondary-btn {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+      }
+
+      .history-primary-btn:hover,
+      .history-secondary-btn:hover,
+      .history-action-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .history-status {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
       }
 
       .history-list {
         display: flex;
         flex-direction: column;
+        gap: 14px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .history-group {
+        display: flex;
+        flex-direction: column;
         gap: 12px;
+      }
+
+      .history-group-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.75);
+        margin-top: 4px;
+      }
+
+      .history-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+
+      .history-card:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.09);
+      }
+
+      .history-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .history-card-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .history-card-subtitle {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.68);
+        margin-top: 4px;
+      }
+
+      .history-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .history-card-preview {
+        color: rgba(255, 255, 255, 0.86);
+        line-height: 1.45;
+      }
+
+      .history-card-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .history-card-actions-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .history-action-btn {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+      }
+
+      .history-action-btn.primary {
+        background: rgba(123, 47, 247, 0.95);
+      }
+
+      .history-menu-wrap {
+        position: relative;
+      }
+
+      .history-card-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        display: none;
+        flex-direction: column;
+        min-width: 110px;
+        background: rgba(11, 16, 30, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        overflow: hidden;
+        z-index: 5;
+      }
+
+      .history-card-menu.open {
+        display: flex;
+      }
+
+      .history-card-menu button {
+        border: none;
+        background: transparent;
+        color: white;
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .history-card-menu button:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .history-empty {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 22px;
+        padding: 28px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .history-load-more {
+        display: flex;
+        justify-content: center;
+        margin-top: 8px;
+      }
+
+      .history-empty-icon {
+        font-size: 40px;
+      }
+
+      .history-readonly-note {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.72);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+      }
+
+      .hidden {
+        display: none;
       }
 
       .ai-msg {
@@ -368,6 +631,26 @@
         background: #1d1b31;
         padding: 15px;
         border-radius: 15px;
+      }
+
+      .choice-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .choice-button {
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(255,255,255,0.08);
+        color: white;
+        cursor: pointer;
+      }
+
+      .choice-button:hover {
+        background: rgba(255,255,255,0.16);
       }
 
       .input-row {
@@ -583,12 +866,19 @@
 
       .chat-item {
         margin-top: 12px;
-
         padding: 12px;
-
         border-radius: 12px;
-
         background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+        color: white;
+        text-align: left;
+        cursor: pointer;
+        white-space: pre-line;
+      }
+
+      .chat-item.active {
+        background: rgba(123, 47, 247, 0.22);
+        border-color: rgba(123, 47, 247, 0.45);
       }
 
       /* ======================
@@ -605,18 +895,195 @@
         border-radius: 25px;
 
         padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
       }
 
-      .todo ul {
-        list-style: none;
-        margin-top: 15px;
+      .todo-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
       }
 
-      .todo li {
-        padding: 12px;
-        margin-bottom: 12px;
+      .todo-search {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+      }
+
+      .todo-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .todo-pill,
+      .todo-action-btn,
+      .todo-add-btn {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: white;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .todo-active {
+        background: linear-gradient(135deg, #7b2ff7, #31cfff);
+      }
+
+      .todo-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .todo-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 18px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .todo-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .todo-card.completed {
+        opacity: 0.7;
+      }
+
+      .todo-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .todo-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .todo-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .todo-title.done {
+        text-decoration: line-through;
+      }
+
+      .todo-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .todo-badge {
+        font-size: 11px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .todo-badge.priority-high { background: rgba(255, 94, 94, 0.2); color: #ffb2b2; }
+      .todo-badge.priority-medium { background: rgba(255, 190, 90, 0.2); color: #ffd8a8; }
+      .todo-badge.priority-low { background: rgba(105, 194, 120, 0.2); color: #c7f8cb; }
+      .todo-badge.status-completed { background: rgba(90, 175, 102, 0.2); color: #c7f8cb; }
+      .todo-badge.status-overdue { background: rgba(255, 94, 94, 0.2); color: #ffb2b2; }
+      .todo-badge.status-pending { background: rgba(255, 255, 255, 0.08); }
+      .todo-badge.status-started { background: rgba(99, 170, 255, 0.18); color: #cfe9ff; }
+
+      .todo-card-meta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 13px;
+      }
+
+      .todo-card-description {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .todo-card-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .todo-card-actions button {
+        border: none;
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.08);
+        color: white;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .todo-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(4, 4, 10, 0.75);
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        z-index: 1100;
+      }
+
+      .todo-modal {
+        width: min(560px, 100%);
+        background: rgba(13, 18, 36, 0.97);
+        border-radius: 24px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .todo-modal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .todo-modal input,
+      .todo-modal textarea,
+      .todo-modal select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+      }
+
+      .todo-modal textarea { min-height: 90px; resize: vertical; }
+
+      .todo-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 4px;
       }
 
       @media (max-width: 1100px) {
@@ -653,10 +1120,11 @@
         </div>
 
         <div class="nav">
-          <button>🏠</button>
-          <button>🎤</button>
-          <button>💬</button>
-          <button>⚙️</button>
+          <button type="button" onclick="window.location.href='/'">🏠</button>
+          <button type="button" onclick="window.location.href='/voice'">🎤</button>
+          <button type="button" onclick="window.location.href='/chat-page'">💬</button>
+          <button type="button" onclick="window.location.href='/todo'" title="Tasks">📋</button>
+          <button type="button" onclick="window.location.href='/settings'">⚙️</button>
         </div>
       </div>
 
@@ -683,7 +1151,7 @@
 
             <div class="chat-panel">
               <div class="chat-panel-header">
-                <h3>Conversation</h3>
+                <h3>Chat</h3>
                 <button id="historyToggle" class="history-button" type="button">🕘 History</button>
               </div>
 
@@ -699,13 +1167,32 @@
                     placeholder="Ask anything..."
                   />
 
+                  <button id="continueConversationBtn" class="history-secondary-btn hidden" type="button" onclick="unlockConversation()">Continue</button>
                   <button onclick="sendMessage()">Send</button>
                 </div>
               </div>
 
-              <div class="chat-panel-view hidden" id="historyView">
-                <div class="history-list" id="historyList">
-                  <div class="chat-item">AI: Hello Ramyasree! How can I help you today?</div>
+              <div class="history-modal-backdrop hidden" id="historyView">
+                <div class="history-modal" role="dialog" aria-modal="true" aria-label="Conversation history">
+                  <div class="history-modal-header">
+                    <div>
+                      <p class="history-eyebrow">Conversation History</p>
+                      <h2>Browse your past chats</h2>
+                    </div>
+                    <button class="history-close" id="historyCloseBtn" type="button" aria-label="Close history">✕</button>
+                  </div>
+
+                  <div class="history-toolbar">
+                    <label class="history-search" for="historySearchInput">
+                      <span>🔎</span>
+                      <input id="historySearchInput" type="text" placeholder="Search by title or message content" />
+                    </label>
+                    <button class="history-primary-btn" id="newConversationBtn" type="button">+ New Chat</button>
+                  </div>
+
+                  <div class="history-status" id="historyStatus">Loading conversations…</div>
+                  <div class="history-list" id="historyList"></div>
+                  <div class="history-load-more" id="historyLoadMore"></div>
                 </div>
               </div>
             </div>
@@ -806,17 +1293,12 @@
         </div>
 
         <div class="todo">
-          <h3>📋 Todo List</h3>
+          <div class="todo-toolbar">
+            <h3>📋 Task Board</h3>
+            <button class="todo-add-btn todo-active" type="button" onclick="window.location.href='/todo?openAddTask=1'">+ Add Task</button>
+          </div>
 
-          <form id="todoForm" onsubmit="event.preventDefault(); addTodo();">
-            <input type="text" id="todoTitle" placeholder="New todo title" required style="width:55%" />
-            <input type="datetime-local" id="todoDue" style="width:30%" />
-            <button type="submit">Add</button>
-          </form>
-
-          <ul id="todoList">
-            <!-- populated dynamically -->
-          </ul>
+          <div class="todo-list" id="todoList"></div>
         </div>
       </div>
     </div>
@@ -846,21 +1328,231 @@
         await loadTodos();
       }
 
-      async function loadConversations() {
+      let historyOffset = 0;
+      let historyHasMore = true;
+      let historyLoading = false;
+      let historySearchQuery = '';
+      let currentConversationMeta = {id: null, readOnly: false};
+      let activeHistoryMenu = null;
+
+      function escapeHtml(text) {
+        return String(text ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatConversationDate(value) {
+        if (!value) return 'Unknown';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Unknown';
+        return date.toLocaleDateString([], {month: 'short', day: 'numeric', year: 'numeric'});
+      }
+
+      function formatConversationTime(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+      }
+
+      function groupConversations(conversations) {
+        const groups = {Today: [], Yesterday: [], 'Last 7 Days': [], 'Last 30 Days': [], Older: []};
+        const now = new Date();
+        conversations.forEach((conversation) => {
+          const updatedAt = new Date(conversation.updated_at || conversation.created_at || Date.now());
+          const diffDays = Math.floor((now.setHours(0,0,0,0) - updatedAt.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 0) groups.Today.push(conversation);
+          else if (diffDays === 1) groups.Yesterday.push(conversation);
+          else if (diffDays <= 7) groups['Last 7 Days'].push(conversation);
+          else if (diffDays <= 30) groups['Last 30 Days'].push(conversation);
+          else groups.Older.push(conversation);
+        });
+        return groups;
+      }
+
+      function renderConversationGroups(conversations) {
+        const historyListEl = document.getElementById('historyList');
+        const groups = groupConversations(conversations);
+        const ordered = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'Older'];
+        const fragments = [];
+        ordered.forEach((label) => {
+          const items = groups[label];
+          if (!items.length) return;
+          const section = document.createElement('section');
+          section.className = 'history-group';
+          const sectionTitle = document.createElement('div');
+          sectionTitle.className = 'history-group-title';
+          sectionTitle.innerText = label;
+          section.appendChild(sectionTitle);
+          items.forEach((conversation) => section.appendChild(createConversationCard(conversation)));
+          fragments.push(section);
+        });
+        historyListEl.innerHTML = '';
+        fragments.forEach((section) => historyListEl.appendChild(section));
+        document.getElementById('historyLoadMore').innerHTML = '';
+      }
+
+      function createConversationCard(conversation) {
+        const card = document.createElement('article');
+        card.className = 'history-card';
+        const updatedAt = conversation.updated_at || conversation.created_at;
+        const preview = conversation.preview || 'No messages yet';
+        const messageCount = conversation.message_count || 0;
+        const isActive = String(localStorage.getItem('current_conversation')) === String(conversation.id);
+        const title = conversation.title || 'Untitled conversation';
+        card.innerHTML = `
+          <div class="history-card-top">
+            <div>
+              <div class="history-card-title">${escapeHtml(title)}</div>
+              <div class="history-card-subtitle">${escapeHtml(formatConversationDate(updatedAt))} • ${escapeHtml(formatConversationTime(updatedAt))}</div>
+            </div>
+            <div class="history-menu-wrap">
+              <button class="history-action-btn" type="button" data-menu-button>⋯</button>
+              <div class="history-card-menu" data-menu>
+                <button type="button" data-action="rename">Rename</button>
+                <button type="button" data-action="delete">Delete</button>
+              </div>
+            </div>
+          </div>
+          <div class="history-card-meta">
+            <span>${messageCount} ${messageCount === 1 ? 'message' : 'messages'}</span>
+            <span>${isActive ? 'Active' : 'Archived'}</span>
+          </div>
+          <div class="history-card-preview">${escapeHtml(preview)}</div>
+          <div class="history-card-actions">
+            <div class="history-card-actions-row">
+              <button class="history-action-btn primary" type="button" data-action="open">Open</button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('[data-action="open"]').addEventListener('click', () => openConversation(conversation.id));
+        const menuButton = card.querySelector('[data-menu-button]');
+        const menu = card.querySelector('[data-menu]');
+        menuButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (activeHistoryMenu && activeHistoryMenu !== menu) {
+            activeHistoryMenu.classList.remove('open');
+          }
+          menu.classList.toggle('open');
+          activeHistoryMenu = menu.classList.contains('open') ? menu : null;
+        });
+        card.querySelector('[data-action="rename"]').addEventListener('click', async () => {
+          const nextTitle = prompt('Rename conversation', title) || title;
+          if (!nextTitle.trim()) return;
+          await renameConversation(conversation.id, nextTitle.trim());
+          menu.classList.remove('open');
+        });
+        card.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+          if (!confirm('Delete this conversation history?')) return;
+          await deleteConversation(conversation.id);
+          menu.classList.remove('open');
+        });
+        return card;
+      }
+
+      async function loadConversations(reset = true) {
+        if (historyLoading) return;
         const token = localStorage.getItem('token');
-        if (!token) return;
-        const resp = await fetch('/conversations', {headers:{'Authorization':'Bearer '+token}});
+        if (!token) {
+          const historyListEl = document.getElementById('historyList');
+          historyListEl.innerHTML = '';
+          document.getElementById('historyStatus').innerText = 'Sign in to view your history.';
+          return;
+        }
+
+        if (reset) {
+          historyOffset = 0;
+          historyHasMore = true;
+          historyLoading = true;
+          document.getElementById('historyStatus').innerText = 'Loading conversations…';
+        } else if (!historyHasMore) {
+          return;
+        }
+
+        const query = new URLSearchParams({q: historySearchQuery, limit: '12', offset: String(historyOffset)});
+        const resp = await fetch('/conversations?' + query.toString(), {headers:{'Authorization':'Bearer '+token}});
         if (!resp.ok) return;
         const list = await resp.json();
+        historyLoading = false;
+        if (!list.length) {
+          if (reset) {
+            renderEmptyHistory();
+            document.getElementById('historyStatus').innerText = 'No conversations yet.';
+          }
+          historyHasMore = false;
+          return;
+        }
+
+        if (reset) {
+          renderConversationGroups(list);
+        } else {
+          const historyListEl = document.getElementById('historyList');
+          const groups = groupConversations(list);
+          const ordered = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'Older'];
+          ordered.forEach((label) => {
+            const items = groups[label];
+            if (!items.length) return;
+            const section = document.createElement('section');
+            section.className = 'history-group';
+            const title = document.createElement('div');
+            title.className = 'history-group-title';
+            title.innerText = label;
+            section.appendChild(title);
+            items.forEach((conversation) => section.appendChild(createConversationCard(conversation)));
+            historyListEl.appendChild(section);
+          });
+        }
+
+        historyOffset += list.length;
+        if (list.length < 12) historyHasMore = false;
+        const loadMoreEl = document.getElementById('historyLoadMore');
+        loadMoreEl.innerHTML = historyHasMore
+          ? '<button class="history-secondary-btn" type="button" id="historyLoadMoreBtn">Load more</button>'
+          : '';
+        if (historyHasMore) {
+          document.getElementById('historyLoadMoreBtn').addEventListener('click', () => loadConversations(false));
+        }
+        document.getElementById('historyStatus').innerText = `${historyOffset} conversation${historyOffset === 1 ? '' : 's'} loaded`;
+      }
+
+      function renderEmptyHistory() {
         const historyListEl = document.getElementById('historyList');
-        historyListEl.innerHTML = '';
-        list.forEach(c => {
-          const item = document.createElement('div');
-          item.className = 'chat-item';
-          item.innerText = `${c.title} - ${c.last_message ? c.last_message.message : ''}`;
-          item.onclick = () => openConversation(c.id);
-          historyListEl.appendChild(item);
-        });
+        historyListEl.innerHTML = `
+          <div class="history-empty">
+            <div class="history-empty-icon">🗂️</div>
+            <h3>No conversation history yet.</h3>
+            <p>Start a new conversation to build your personal timeline.</p>
+            <button class="history-primary-btn" type="button" id="startNewConversationFromEmpty">Start New Conversation</button>
+          </div>
+        `;
+        document.getElementById('historyLoadMore').innerHTML = '';
+        const button = document.getElementById('startNewConversationFromEmpty');
+        if (button) button.addEventListener('click', startNewConversation);
+      }
+
+      async function renameConversation(id, title) {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch(`/conversations/${id}`, {method:'PATCH', headers:{'Authorization':'Bearer '+token, 'Content-Type':'application/json'}, body: JSON.stringify({title})});
+        if (!resp.ok) return;
+        await loadConversations(true);
+      }
+
+      async function deleteConversation(id) {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const resp = await fetch(`/conversations/${id}`, {method:'DELETE', headers:{'Authorization':'Bearer '+token}});
+        if (!resp.ok) return;
+        if (Number(localStorage.getItem('current_conversation')) === id) {
+          localStorage.removeItem('current_conversation');
+          currentConversationMeta = {id: null, readOnly: false};
+          renderConversationMessages([]);
+        }
+        await loadConversations(true);
       }
 
       async function fetchDueReminders() {
@@ -883,110 +1575,261 @@
         }
       }
 
-      // Todo functions
+      let taskState = {editingId: null};
+      let taskModalOpen = false;
+
+      function formatTaskDate(dateValue) {
+        if (!dateValue) return 'No date';
+        const date = new Date(dateValue);
+        if (Number.isNaN(date.getTime())) return dateValue;
+        return date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+      }
+
+      function sortTasks(tasks) {
+        return [...tasks].sort((a, b) => {
+          const aTime = a.start_time || '23:59';
+          const bTime = b.start_time || '23:59';
+          return aTime.localeCompare(bTime);
+        });
+      }
+
       async function loadTodos() {
         const token = localStorage.getItem('token');
-        if (!token) return;
-        const resp = await fetch('/todos', {headers:{'Authorization':'Bearer '+token}});
-        if (!resp.ok) return;
-        const list = await resp.json();
-        renderTodos(list);
+        const sessionId = localStorage.getItem('session_id');
+        if (!token && !sessionId) return;
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const url = token ? '/todos' : `/todos?session_id=${encodeURIComponent(sessionId || '')}`;
+        try {
+          const resp = await fetch(url, {headers});
+          if (!resp.ok) return;
+          const list = await resp.json();
+          renderTodos(list);
+        } catch (error) {
+          console.error('Unable to refresh todos', error);
+        }
+      }
+
+      function triggerTodoRefresh() {
+        window.dispatchEvent(new CustomEvent('todos:updated'));
       }
 
       function renderTodos(list) {
         const el = document.getElementById('todoList');
+        window.__taskMap = Object.fromEntries((list || []).map((task) => [task.id, task]));
+        // show only today's tasks
+        const today = new Date().toISOString().split('T')[0];
+        const todays = (list || []).filter((t) => (t.date || '') === today);
+        const filtered = sortTasks(todays);
         el.innerHTML = '';
-        list.forEach(t => {
-          const li = document.createElement('li');
-          let dueText = '';
-          if (t.due_at) {
-            const d = new Date(t.due_at);
-            dueText = ' — due ' + d.toLocaleString();
+        if (!filtered.length) {
+          el.innerHTML = '<div class="todo-card"><div class="todo-card-description">No tasks for today.</div></div>';
+          return;
+        }
+        filtered.forEach((task) => {
+          function computeStatus(task) {
+            if (task.is_completed) return {label: 'Completed', klass: 'status-completed'};
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            if ((task.date || '') !== todayStr) return {label: 'Pending', klass: 'status-pending'};
+            if (task.start_time) {
+              const [h, m] = (task.start_time || '').split(':').map(Number);
+              const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), isNaN(h) ? 0 : h, isNaN(m) ? 0 : m);
+              let end = null;
+              if (task.end_time) {
+                const [eh, em] = (task.end_time || '').split(':').map(Number);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), isNaN(eh) ? 0 : eh, isNaN(em) ? 0 : em);
+              }
+              if (now >= start && (!end || now < end)) return {label: 'Started', klass: 'status-started'};
+              return {label: 'Pending', klass: 'status-pending'};
+            }
+            return {label: 'Pending', klass: 'status-pending'};
           }
-          li.innerHTML = `${t.is_completed ? '✅' : '⬜'} <strong>${t.title}</strong>${dueText} <button style="margin-left:8px" onclick="completeTodo(${t.id})">Complete</button> <button onclick="editTodo(${t.id}, ${JSON.stringify(t.title)}, ${t.due_at ? `'${t.due_at}'` : 'null'})">Edit</button> <button onclick="deleteTodo(${t.id})">Delete</button>`;
-          el.appendChild(li);
+
+          const status = computeStatus(task);
+          const card = document.createElement('div');
+          card.className = 'todo-card';
+          card.innerHTML = `
+            <div class="todo-card-top">
+              <div class="todo-title-row">
+                <div class="todo-title">${escapeHtml(task.title || 'Untitled task')}</div>
+              </div>
+            </div>
+            <div class="todo-card-meta">
+              <span>🕘 ${escapeHtml([task.start_time, task.end_time].filter(Boolean).join(' → ')) || 'No time'}</span>
+              <span class="todo-badge ${status.klass}">${status.label}</span>
+            </div>
+            <div class="todo-card-actions">
+              <button type="button" onclick="openTaskModal(${task.id})">Edit</button>
+              <button type="button" onclick="deleteTodo(${task.id})">Delete</button>
+            </div>
+          `;
+          el.appendChild(card);
         });
       }
 
-      async function addTodo() {
-        const title = document.getElementById('todoTitle').value.trim();
-        const due = document.getElementById('todoDue').value;
-        if (!title) return;
-        const token = localStorage.getItem('token');
-        const sessionId = localStorage.getItem('session_id');
-        const body = {title};
-        if (due) body.due_at = new Date(due).toISOString();
-        const headers = {'Content-Type':'application/json'};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        const url = token ? '/todos' : `/todos?session_id=${encodeURIComponent(sessionId || '')}`;
-        const resp = await fetch(url, {method:'POST', headers, body: JSON.stringify(body)});
-        if (resp.ok) {
-          document.getElementById('todoTitle').value = '';
-          document.getElementById('todoDue').value = '';
-          await loadTodos();
-        } else {
-          alert('Unable to add todo');
+      function openTaskModal(id = null) {
+        taskModalOpen = true;
+        taskState.editingId = id;
+        const modal = document.createElement('div');
+        modal.className = 'todo-modal-backdrop';
+        modal.id = 'taskModalBackdrop';
+        modal.innerHTML = `
+          <div class="todo-modal">
+            <h3>${id ? 'Edit Task' : 'Add Task'}</h3>
+            <div class="todo-modal-grid">
+              <label><span>Task Title</span><input id="taskTitle" /></label>
+              <label><span>Category</span><input id="taskCategory" /></label>
+              <label><span>Date</span><input id="taskDate" type="date" /></label>
+              <label><span>Priority</span><select id="taskPriority"><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select></label>
+              <label><span>Start Time</span><input id="taskStart" type="time" /></label>
+              <label><span>End Time</span><input id="taskEnd" type="time" /></label>
+            </div>
+            <label><span>Description</span><textarea id="taskDescription"></textarea></label>
+            <div class="todo-modal-actions">
+              <button class="todo-action-btn" type="button" onclick="closeTaskModal()">Cancel</button>
+              <button class="todo-active todo-action-btn" type="button" onclick="saveTask()">Save</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        if (id) {
+          const task = window.__taskMap && window.__taskMap[id];
+          if (task) {
+            document.getElementById('taskTitle').value = task.title || '';
+            document.getElementById('taskDescription').value = task.description || '';
+            document.getElementById('taskDate').value = task.date || '';
+            document.getElementById('taskStart').value = task.start_time || '';
+            document.getElementById('taskEnd').value = task.end_time || '';
+            document.getElementById('taskPriority').value = task.priority || 'Medium';
+            document.getElementById('taskCategory').value = task.category || 'Personal';
+          }
         }
       }
 
-      async function completeTodo(id) {
+      function closeTaskModal() {
+        taskModalOpen = false;
+        const modal = document.getElementById('taskModalBackdrop');
+        if (modal) modal.remove();
+      }
+
+      async function saveTask() {
+        const token = localStorage.getItem('token');
+        const sessionId = localStorage.getItem('session_id');
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const body = {
+          title: document.getElementById('taskTitle').value.trim(),
+          description: document.getElementById('taskDescription').value.trim(),
+          category: document.getElementById('taskCategory').value.trim() || 'Personal',
+          date: document.getElementById('taskDate').value || null,
+          priority: document.getElementById('taskPriority').value || 'Medium',
+          start_time: document.getElementById('taskStart').value || null,
+          end_time: document.getElementById('taskEnd').value || null,
+        };
+        if (!body.title) return;
+        const url = taskState.editingId ? `/todos/${taskState.editingId}` : (token ? '/todos' : `/todos?session_id=${encodeURIComponent(sessionId || '')}`);
+        const method = taskState.editingId ? 'PUT' : 'POST';
+        const resp = await fetch(url, {method, headers, body: JSON.stringify(body)});
+        if (resp.ok) {
+          closeTaskModal();
+          await loadTodos();
+          triggerTodoRefresh();
+        } else {
+          alert('Unable to save task');
+        }
+      }
+
+      async function toggleTask(id) {
         const token = localStorage.getItem('token');
         const sessionId = localStorage.getItem('session_id');
         const headers = {};
         if (token) headers['Authorization'] = 'Bearer ' + token;
         const url = token ? `/todos/${id}/complete` : `/todos/${id}/complete?session_id=${encodeURIComponent(sessionId || '')}`;
         const resp = await fetch(url, {method:'POST', headers});
-        if (resp.ok) await loadTodos();
+        if (resp.ok) {
+          await loadTodos();
+          triggerTodoRefresh();
+        }
       }
 
       async function deleteTodo(id) {
-        if (!confirm('Delete this todo?')) return;
+        if (!confirm('Delete this task?')) return;
         const token = localStorage.getItem('token');
         const sessionId = localStorage.getItem('session_id');
         const headers = {};
         if (token) headers['Authorization'] = 'Bearer ' + token;
         const url = token ? `/todos/${id}` : `/todos/${id}?session_id=${encodeURIComponent(sessionId || '')}`;
         const resp = await fetch(url, {method:'DELETE', headers});
-        if (resp.ok) await loadTodos();
+        if (resp.ok) {
+          await loadTodos();
+          triggerTodoRefresh();
+        }
       }
 
-      async function editTodo(id, title, due_at) {
-        const newTitle = prompt('Edit title', title) || title;
-        let newDue = null;
-        if (confirm('Edit due date?')) {
-          const input = prompt('Enter due date/time (YYYY-MM-DD HH:MM) or leave blank to clear', due_at ? new Date(due_at).toLocaleString() : '');
-          if (input) {
-            // try to parse local datetime string
-            const parsed = new Date(input);
-            if (!isNaN(parsed)) newDue = parsed.toISOString();
+      document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', (event) => {
+          if (taskModalOpen && !event.target.closest('.todo-modal')) {
+            closeTaskModal();
           }
-        }
-        const token = localStorage.getItem('token');
-        const sessionId = localStorage.getItem('session_id');
-        const headers = {'Content-Type':'application/json'};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        const url = token ? `/todos/${id}` : `/todos/${id}?session_id=${encodeURIComponent(sessionId || '')}`;
-        const resp = await fetch(url, {method:'PUT', headers, body: JSON.stringify({title: newTitle, due_at: newDue})});
-        if (resp.ok) await loadTodos(); else alert('Unable to update');
-      }
+        });
+
+        window.addEventListener('todos:updated', () => {
+          loadTodos();
+        });
+
+        window.addEventListener('focus', () => {
+          loadTodos();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            loadTodos();
+          }
+        });
+      });
 
       async function openConversation(id) {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const resp = await fetch('/conversation/'+id, {headers:{'Authorization':'Bearer '+token}});
+        const resp = await fetch(`/conversations/${id}`, {headers:{'Authorization':'Bearer '+token}});
         if (!resp.ok) return;
         const data = await resp.json();
-        // render messages
-        const chatBox = document.getElementById('chatBox');
-        chatBox.innerHTML = '';
-        data.messages.forEach(m => {
-          const div = document.createElement('div');
-          div.className = m.sender === 'assistant' ? 'ai-msg' : 'user-msg';
-          div.innerText = m.message;
-          chatBox.appendChild(div);
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
+        renderConversationMessages(data.messages || []);
         localStorage.setItem('current_conversation', id);
+        currentConversationMeta = {id, readOnly: !data.is_today};
+        setConversationReadOnlyState();
+        await loadConversations(true);
+        setHistoryMode(false);
+      }
+
+      function setConversationReadOnlyState() {
+        const input = document.getElementById('messageInput');
+        const continueBtn = document.getElementById('continueConversationBtn');
+        if (!input || !continueBtn) return;
+        if (currentConversationMeta.id && currentConversationMeta.readOnly) {
+          input.disabled = true;
+          input.placeholder = 'This conversation is read-only. Continue it intentionally.';
+          continueBtn.classList.remove('hidden');
+        } else {
+          input.disabled = false;
+          input.placeholder = 'Ask anything...';
+          continueBtn.classList.add('hidden');
+        }
+      }
+
+      function unlockConversation() {
+        currentConversationMeta.readOnly = false;
+        setConversationReadOnlyState();
+        document.getElementById('messageInput').focus();
+      }
+
+      function startNewConversation() {
+        localStorage.removeItem('current_conversation');
+        currentConversationMeta = {id: null, readOnly: false};
+        setConversationReadOnlyState();
+        renderConversationMessages([]);
+        setHistoryMode(false);
       }
 
       // initialize auth/profile on load
@@ -1012,14 +1855,17 @@
       const conversationView = document.getElementById("conversationView");
       const historyView = document.getElementById("historyView");
       const historyList = document.getElementById("historyList");
+      const historySearchInput = document.getElementById("historySearchInput");
+      const historyCloseBtn = document.getElementById("historyCloseBtn");
+      const newConversationBtn = document.getElementById("newConversationBtn");
 
       function setHistoryMode(showHistory) {
         if (showHistory) {
-          conversationView.classList.add("hidden");
           historyView.classList.remove("hidden");
           historyToggle.textContent = "💬 Conversation";
+          if (historySearchInput) historySearchInput.value = historySearchQuery;
+          loadConversations(true);
         } else {
-          conversationView.classList.remove("hidden");
           historyView.classList.add("hidden");
           historyToggle.textContent = "🕘 History";
         }
@@ -1029,15 +1875,57 @@
         setHistoryMode(historyView.classList.contains("hidden"));
       });
 
+      if (historyCloseBtn) {
+        historyCloseBtn.addEventListener("click", () => setHistoryMode(false));
+      }
+
+      if (newConversationBtn) {
+        newConversationBtn.addEventListener("click", startNewConversation);
+      }
+
+      if (historySearchInput) {
+        historySearchInput.addEventListener("input", (event) => {
+          historySearchQuery = event.target.value.trim();
+          loadConversations(true);
+        });
+      }
+
+      if (historyView) {
+        historyView.addEventListener("click", (event) => {
+          if (event.target === historyView) setHistoryMode(false);
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest('[data-menu-button]')) {
+          document.querySelectorAll('[data-menu]').forEach((menu) => menu.classList.remove('open'));
+          activeHistoryMenu = null;
+        }
+      });
+
       function addHistoryEntry(prefix, text) {
-        const item = document.createElement("div");
-        item.className = "chat-item";
-        item.innerText = `${prefix}: ${text}`;
-        historyList.appendChild(item);
+        return null;
+      }
+
+      function scrollToTodoSection() {
+        const todoSection = document.querySelector('.todo');
+        if (!todoSection) return;
+        todoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function renderConversationMessages(messages) {
+        chatBox.innerHTML = '';
+        messages.forEach(m => {
+          const div = document.createElement('div');
+          const sender = m.role === 'assistant' ? 'ai' : m.role === 'user' ? 'user' : 'ai';
+          div.className = sender === 'user' ? 'user-msg' : 'ai-msg';
+          div.innerText = m.content;
+          chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
       }
 
       function addUserMessage(text) {
-        addHistoryEntry("You", text);
         const div = document.createElement("div");
         div.className = "user-msg";
         div.innerText = text;
@@ -1045,11 +1933,34 @@
         chatBox.scrollTop = chatBox.scrollHeight;
       }
 
-      function addAIMessage(text) {
+      function addAIMessage(payload) {
+        const text = typeof payload === 'string' ? payload : (payload?.response || '');
         addHistoryEntry("AI", text);
         const div = document.createElement("div");
         div.className = "ai-msg";
-        div.innerText = text;
+
+        const textNode = document.createElement("div");
+        textNode.innerText = text;
+        div.appendChild(textNode);
+
+        const choices = Array.isArray(payload?.choices) ? payload.choices : [];
+        if (choices.length) {
+          const buttonRow = document.createElement("div");
+          buttonRow.className = "choice-buttons";
+          choices.forEach((choice) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "choice-button";
+            button.innerText = choice;
+            button.addEventListener("click", () => {
+              addUserMessage(choice);
+              sendTextToBackend(choice, { showUserMessage: false });
+            });
+            buttonRow.appendChild(button);
+          });
+          div.appendChild(buttonRow);
+        }
+
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
         speakText(text);
@@ -1077,7 +1988,10 @@
         const input = document.getElementById("messageInput");
         const text = input.value.trim();
         if (!text) return;
-        addUserMessage(text);
+        if (currentConversationMeta.id && currentConversationMeta.readOnly) {
+          alert('This conversation is read-only. Click Continue to keep writing.');
+          return;
+        }
         input.value = "";
         await sendTextToBackend(text);
       }
@@ -1088,12 +2002,16 @@
         longitude: null,
       };
 
-      async function sendTextToBackend(text) {
+      async function sendTextToBackend(text, {showUserMessage = true} = {}) {
         const typing = document.createElement("div");
         typing.className = "typing";
         typing.id = "typing";
         typing.innerHTML = "Thinking...";
         chatBox.appendChild(typing);
+
+        if (showUserMessage) {
+          addUserMessage(text);
+        }
 
         try {
           const body = {
@@ -1117,7 +2035,7 @@
           document.getElementById("typing").remove();
           if (data.conversation_id) localStorage.setItem('current_conversation', data.conversation_id);
           if (data.session_id) localStorage.setItem('session_id', data.session_id);
-          addAIMessage(data.response);
+          addAIMessage(data);
           if (data.action && data.action.startsWith("play_music")) {
             showMusicPlayer(data.url, data.source, data.metadata);
           }
@@ -1250,6 +2168,8 @@
       }
 
       function formatIcon(icon) {
+        if (!icon) return "";
+        if (/^https?:\/\//i.test(icon)) return icon;
         return `https://openweathermap.org/img/wn/${icon}@2x.png`;
       }
 
@@ -1335,43 +2255,77 @@
       // --- Speech Recognition (Web Speech API) ---
       let recognition;
       let recognizing = false;
+      let autoListeningEnabled = true;
       const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      let lastTranscript = "";
+      let lastTranscriptTime = 0;
 
       if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.lang = "en-US";
+        recognition.continuous = true;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
           recognizing = true;
-          voiceStatus.innerText = "Listening...";
-          voiceSubText.innerText = "Speak now";
+          voiceStatus.innerText = "Always listening";
+          voiceSubText.innerText = "Speak naturally";
           micEl.style.background = "rgba(255,255,255,0.25)";
         };
 
         recognition.onend = () => {
           recognizing = false;
-          voiceStatus.innerText = "Click to speak";
-          voiceSubText.innerText = "Speak naturally";
           micEl.style.background = "rgba(255,255,255,0.2)";
+          if (autoListeningEnabled) {
+            try {
+              recognition.start();
+            } catch (e) {
+              console.warn(e);
+            }
+          } else {
+            voiceStatus.innerText = "Listening paused";
+            voiceSubText.innerText = "Click mic to resume";
+          }
         };
 
         recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
+          const transcript = event.results[event.resultIndex][0].transcript.trim();
+          const now = Date.now();
+          if (transcript && transcript === lastTranscript && now - lastTranscriptTime < 3000) {
+            return;
+          }
+          lastTranscript = transcript;
+          lastTranscriptTime = now;
           addUserMessage(transcript);
           sendTextToBackend(transcript);
         };
 
         recognition.onerror = (e) => {
           console.error("Speech recognition error", e);
-          addAIMessage("Speech recognition error");
+          if (autoListeningEnabled) {
+            try {
+              recognition.start();
+            } catch (err) {
+              console.warn(err);
+            }
+          }
         };
       } else {
         // not supported
         voiceStatus.innerText = "Speech recognition not supported";
         voiceSubText.style.opacity = 0.7;
+      }
+
+      function ensureRecognitionRunning() {
+        if (!recognition || !autoListeningEnabled || recognizing) return;
+        try {
+          recognition.start();
+        } catch (e) {
+          console.warn(e);
+        }
       }
 
       function toggleRecognition() {
@@ -1380,20 +2334,24 @@
           return;
         }
 
-        if (!recognizing) {
-          try {
-            recognition.start();
-          } catch (e) {
-            console.warn(e);
+        autoListeningEnabled = !autoListeningEnabled;
+        if (!autoListeningEnabled) {
+          if (recognizing) {
+            recognition.stop();
           }
-        } else {
-          recognition.stop();
+          voiceStatus.innerText = "Listening paused";
+          voiceSubText.innerText = "Click mic to resume";
+          micEl.style.background = "rgba(255,255,255,0.2)";
+          return;
         }
+
+        ensureRecognitionRunning();
       }
 
       // attach click to mic and voiceStatus
       micEl.addEventListener("click", toggleRecognition);
       voiceStatus.addEventListener("click", toggleRecognition);
+      window.addEventListener("load", ensureRecognitionRunning);
 
     </script>
   </body>

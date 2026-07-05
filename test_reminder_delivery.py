@@ -42,7 +42,7 @@ print(f"  Is Notified: {reminder.is_notified}")
 messages = db.query(Message).filter(Message.conversation_id == conv.id).all()
 print(f"  Messages in conversation: {len(messages)}")
 for msg in messages:
-    print(f"    - {msg.sender}: {msg.message}")
+    print(f"    - {msg.role}: {msg.content}")
 
 db.close()
 print("\n✓ Test passed - Reminder delivery works!")

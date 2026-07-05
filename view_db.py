@@ -21,6 +21,6 @@ if __name__ == '__main__':
             print(c.id, 'user_id=' + str(c.user_id), 'session_id=' + str(c.session_id), 'title=' + str(c.title), 'updated=' + str(iso(c.updated_at)))
         print('\n--- Messages (last 100) ---')
         for m in db.query(Message).order_by(Message.timestamp.desc()).limit(100):
-            print(m.id, 'conv=', m.conversation_id, m.sender, iso(m.timestamp), m.message)
+            print(m.id, 'conv=', m.conversation_id, m.role, iso(m.timestamp), m.content)
     finally:
         db.close()

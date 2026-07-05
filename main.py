@@ -19,14 +19,15 @@ from assistant.ai_service import get_ai_response
 from assistant.speech_to_text import listen
 from assistant.core_process import process_command
 from assistant.intent_detector import detect_intent
-from assistant.task_manager import handle_reminder_command, handle_todo_command
+from assistant.task_manager import handle_reminder_command, handle_todo_command, PENDING_TODO_CONTEXTS, _pending_context_key, _get_pending_todo_context
 from services.weather_service import get_weather, CityNotFoundError, WeatherServiceError
 
 # DB + Auth
-from db import engine, Base, get_db, SessionLocal
+from db import engine, Base, get_db, SessionLocal, migrate_database
 from models import User, Conversation, Message, TodoItem, Reminder
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy.orm import Session
+from sqlalchemy import func, or_
 from auth import hash_password, verify_password, create_access_token, get_current_user, get_optional_current_user
 
 
@@ -89,6 +90,26 @@ def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html")
 
 
+@app.get("/voice", response_class=HTMLResponse)
+def voice_page(request: Request):
+    return templates.TemplateResponse(request, "voice.html")
+
+
+@app.get("/chat-page", response_class=HTMLResponse)
+def chat_page(request: Request):
+    return templates.TemplateResponse(request, "chat.html")
+
+
+@app.get("/todo", response_class=HTMLResponse)
+def todo_page(request: Request):
+    return templates.TemplateResponse(request, "todo.html")
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request):
+    return templates.TemplateResponse(request, "settings.html")
+
+
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html")
@@ -100,8 +121,96 @@ def listen_endpoint():
     return {"command": text}
 
 
-# Create DB tables
+# Create DB tables and synchronize legacy SQLite message schema if needed
+migrate_database()
 Base.metadata.create_all(bind=engine)
+
+
+def _normalize_conversation_title(text: str | None) -> str | None:
+    if not text:
+        return None
+    cleaned = " ".join(text.strip().split())
+    return cleaned[:64] or None
+
+
+def _serialize_message(message: Message) -> dict:
+    return {
+        "id": message.id,
+        "role": message.role,
+        "content": message.content,
+        "timestamp": message.timestamp.isoformat() if message.timestamp else None,
+    }
+
+
+def _serialize_conversation(conversation: Conversation, now: datetime | None = None) -> dict:
+    now = now or datetime.now()
+    messages = sorted(conversation.messages, key=lambda m: m.timestamp or now)
+    last_message = _serialize_message(messages[-1]) if messages else None
+    title = conversation.title or "Untitled"
+    if not conversation.title and messages:
+        first_user = next((m for m in messages if m.role == "user"), None)
+        if first_user:
+            title = _normalize_conversation_title(first_user.content) or f"{conversation.created_at.strftime('%b %d')} Chat"
+        else:
+            title = f"{conversation.created_at.strftime('%b %d')} Chat"
+
+    preview = None
+    if last_message:
+        preview = last_message["content"]
+        if len(preview) > 120:
+            preview = preview[:117] + "..."
+
+    updated_at = conversation.updated_at or conversation.created_at or now
+    return {
+        "id": conversation.id,
+        "title": title,
+        "last_message": last_message,
+        "preview": preview,
+        "message_count": len(messages),
+        "updated_at": updated_at.isoformat() if updated_at else None,
+        "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+        "is_today": updated_at.date() == now.date(),
+    }
+
+
+def _get_or_create_conversation_for_context(db: Session, user_id: int | None, session_id: str | None, now: datetime | None = None):
+    now = now or datetime.now()
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    if user_id:
+        existing = (
+            db.query(Conversation)
+            .filter(Conversation.user_id == user_id)
+            .filter(Conversation.created_at >= day_start)
+            .filter(Conversation.created_at <= day_end)
+            .order_by(Conversation.created_at.desc())
+            .first()
+        )
+        if existing:
+            return existing
+        conv = Conversation(user_id=user_id, title=f"{now.strftime('%b %d')} Chat")
+        db.add(conv)
+        db.commit()
+        db.refresh(conv)
+        return conv
+
+    if session_id:
+        existing = (
+            db.query(Conversation)
+            .filter(Conversation.session_id == session_id)
+            .order_by(Conversation.created_at.desc())
+            .first()
+        )
+        if existing:
+            return existing
+        conv = Conversation(session_id=session_id, title=f"{now.strftime('%b %d')} Chat")
+        db.add(conv)
+        db.commit()
+        db.refresh(conv)
+        return conv
+
+    return None
 
 
 class RegisterRequest(BaseModel):
@@ -152,37 +261,89 @@ def me(current_user: User = Depends(get_current_user)):
 
 @app.post("/conversations")
 def create_conversation(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    conv = Conversation(user_id=current_user.id, title=None)
-    db.add(conv)
-    db.commit()
-    db.refresh(conv)
+    now = datetime.now()
+    conv = _get_or_create_conversation_for_context(db, user_id=current_user.id, session_id=None, now=now)
     return {"id": conv.id, "title": conv.title, "created_at": conv.created_at.isoformat()}
 
 
 @app.get("/conversations")
-def list_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    convs = db.query(Conversation).filter(Conversation.user_id == current_user.id).order_by(Conversation.updated_at.desc()).all()
-    results = []
-    for c in convs:
-        last = None
-        if c.messages:
-            m = sorted(c.messages, key=lambda x: x.timestamp)[-1]
-            last = {"sender": m.sender, "message": m.message, "timestamp": m.timestamp.isoformat()}
-        updated = c.updated_at or c.created_at
-        results.append({"id": c.id, "title": c.title or "Untitled", "last_message": last, "updated_at": updated.isoformat() if updated else None})
-    return results
+def list_conversations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    q: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+):
+    query = db.query(Conversation).filter(Conversation.user_id == current_user.id)
+    if q:
+        search = f"%{q.lower()}%"
+        query = (
+            query.outerjoin(Conversation.messages)
+            .filter(or_(func.lower(Conversation.title).like(search), func.lower(Message.content).like(search)))
+            .distinct()
+        )
+
+    convs = (
+        query.order_by(Conversation.updated_at.desc(), Conversation.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [_serialize_conversation(c, now=datetime.now()) for c in convs]
 
 
-@app.get("/conversation/{conv_id}")
+@app.get("/conversations/search")
+def search_conversations(
+    q: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return list_conversations(db=db, current_user=current_user, q=q, limit=limit, offset=offset)
+
+
+@app.get("/conversations/{conv_id}")
 def get_conversation(conv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     msgs = [
-        {"id": m.id, "sender": m.sender, "message": m.message, "timestamp": m.timestamp.isoformat()}
+        {"id": m.id, "role": m.role, "content": m.content, "timestamp": m.timestamp.isoformat()}
         for m in sorted(conv.messages, key=lambda x: x.timestamp)
     ]
-    return {"id": conv.id, "title": conv.title, "messages": msgs}
+    return {
+        "id": conv.id,
+        "title": conv.title or f"{conv.created_at.strftime('%b %d')} Chat",
+        "messages": msgs,
+        "message_count": len(msgs),
+        "is_today": (conv.updated_at or conv.created_at or datetime.now()).date() == datetime.now().date(),
+    }
+
+
+@app.patch("/conversations/{conv_id}")
+def patch_conversation(conv_id: int, payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    title = (payload.get("title") or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    conv.title = title
+    conv.updated_at = datetime.now()
+    db.commit()
+    db.refresh(conv)
+    return _serialize_conversation(conv, now=datetime.now())
+
+
+@app.delete("/conversations/{conv_id}")
+def delete_conversation(conv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    db.delete(conv)
+    db.commit()
+    return {"ok": True}
 
 
 @app.post("/conversation/{conv_id}/messages")
@@ -190,54 +351,57 @@ def post_message(conv_id: int, payload: dict, db: Session = Depends(get_db), cur
     conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    sender = payload.get("sender")
-    message = payload.get("message")
-    if not sender or not message:
-        raise HTTPException(status_code=400, detail="sender and message required")
-    m = Message(conversation_id=conv.id, sender=sender, message=message)
+    role = payload.get("role") or "user"
+    content = payload.get("content")
+    if not content:
+        raise HTTPException(status_code=400, detail="content is required")
+    m = Message(conversation_id=conv.id, role=role, content=content)
     db.add(m)
     conv.updated_at = m.timestamp
     db.commit()
     db.refresh(m)
-    return {"id": m.id, "sender": m.sender, "message": m.message, "timestamp": m.timestamp.isoformat()}
+    return {"id": m.id, "role": m.role, "content": m.content, "timestamp": m.timestamp.isoformat()}
 
 
 @app.post("/chat")
 def chat(payload: VoiceRequest, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
     conv = None
-    
-    # Only save to DB if user is authenticated
+
     if current_user:
+        now = datetime.now()
         if payload.conversation_id:
             conv = db.query(Conversation).filter(Conversation.id == payload.conversation_id, Conversation.user_id == current_user.id).first()
+            if conv and conv.created_at.date() != now.date():
+                conv = None
         if not conv:
-            conv = Conversation(user_id=current_user.id, title=None)
-            db.add(conv)
-            db.commit()
-            db.refresh(conv)
+            conv = _get_or_create_conversation_for_context(db, user_id=current_user.id, session_id=payload.session_id, now=now)
 
-        # Save user message
-        user_msg = Message(conversation_id=conv.id, sender="user", message=payload.command)
+        if not conv.title or conv.title.startswith("Chat"):
+            conv.title = _normalize_conversation_title(payload.command) or f"{now.strftime('%b %d')} Chat"
+
+        user_msg = Message(conversation_id=conv.id, role="user", content=payload.command)
         db.add(user_msg)
         db.commit()
         db.refresh(user_msg)
 
-        # Retrieve last messages for context (last 10)
         last_msgs = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.timestamp.desc()).limit(10).all()
         history = []
         for m in reversed(last_msgs):
-            role = "assistant" if m.sender == "assistant" else "user"
-            history.append({"role": role, "content": m.message})
+            history.append({"role": m.role, "content": m.content})
 
-    # Check intents for reminders/todos and handle them directly
-    intent, target = detect_intent(payload.command)
-    if intent == 'reminder':
-        response = handle_reminder_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
-    elif intent == 'todo':
+    context_key, pending_context = _get_pending_todo_context(current_user.id if current_user else None, payload.session_id, db)
+    if pending_context:
         response = handle_todo_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
     else:
-        # Call existing process_command with device coords
-        response = process_command(payload.command, None, payload.device_lat, payload.device_lon)
+        # Check intents for reminders/todos and handle them directly
+        intent, target = detect_intent(payload.command)
+        if intent == 'reminder':
+            response = handle_reminder_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
+        elif intent in ('todo', 'task_create'):
+            response = handle_todo_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
+        else:
+            # Call existing process_command with device coords
+            response = process_command(payload.command, None, payload.device_lat, payload.device_lon)
     
     # Ensure response is a dict
     if isinstance(response, dict):
@@ -248,16 +412,153 @@ def chat(payload: VoiceRequest, db: Session = Depends(get_db), current_user: Use
     # Only save assistant message if user is authenticated
     if current_user and conv:
         assistant_text = assistant_response.get("response", str(response))
-        assistant_msg = Message(conversation_id=conv.id, sender="assistant", message=assistant_text)
+        assistant_msg = Message(conversation_id=conv.id, role="assistant", content=assistant_text)
         db.add(assistant_msg)
         conv.updated_at = assistant_msg.timestamp
-        # generate title from first user message if empty
         if not conv.title:
-            conv.title = (payload.command[:64]) if payload.command else "Conversation"
+            conv.title = _normalize_conversation_title(payload.command) or f"{datetime.now().strftime('%b %d')} Chat"
         db.commit()
         assistant_response["conversation_id"] = conv.id
 
     return assistant_response
+
+
+# -----------------------------
+# Reminder endpoints
+# -----------------------------
+@app.get("/reminders")
+def list_reminders(
+    session_id: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_current_user),
+):
+    query = db.query(Reminder)
+    if current_user:
+        query = query.filter(Reminder.user_id == current_user.id)
+    elif session_id:
+        query = query.filter(Reminder.session_id == session_id)
+    else:
+        raise HTTPException(status_code=401, detail="Authentication or session_id required")
+
+    reminders = query.order_by(Reminder.date.asc(), Reminder.start_time.asc(), Reminder.created_at.desc()).all()
+    return [
+        {
+            "id": r.id,
+            "title": r.title,
+            "description": r.description,
+            "date": r.date,
+            "start_time": r.start_time,
+            "end_time": r.end_time,
+            "priority": r.priority or "Medium",
+            "category": r.category or "Personal",
+            "status": r.status or ("completed" if r.is_completed else "pending"),
+            "is_completed": bool(r.is_completed),
+            "is_notified": bool(r.is_notified),
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+            "due_at": r.due_at.isoformat() if r.due_at else None,
+        }
+        for r in reminders
+    ]
+
+
+@app.post("/reminders")
+def create_reminder(payload: dict, session_id: str | None = None, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
+    title = payload.get("title")
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+
+    reminder = Reminder(
+        title=title,
+        description=payload.get("description"),
+        date=payload.get("date"),
+        start_time=payload.get("start_time"),
+        end_time=payload.get("end_time"),
+        priority=payload.get("priority") or "Medium",
+        category=payload.get("category") or "Personal",
+        status=payload.get("status") or "pending",
+    )
+    if current_user:
+        reminder.user_id = current_user.id
+    elif session_id:
+        reminder.session_id = session_id
+    else:
+        raise HTTPException(status_code=401, detail="Authentication or session_id required")
+
+    if payload.get("due_at"):
+        try:
+            reminder.due_at = datetime.fromisoformat(payload.get("due_at"))
+        except Exception:
+            raise HTTPException(status_code=400, detail="due_at must be ISO datetime")
+
+    db.add(reminder)
+    db.commit()
+    db.refresh(reminder)
+    return {"id": reminder.id, "title": reminder.title, "status": reminder.status or ("completed" if reminder.is_completed else "pending")}
+
+
+@app.put("/reminders/{reminder_id}")
+def update_reminder(reminder_id: int, payload: dict, session_id: str | None = None, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
+    query = db.query(Reminder).filter(Reminder.id == reminder_id)
+    if current_user:
+        query = query.filter(Reminder.user_id == current_user.id)
+    elif session_id:
+        query = query.filter(Reminder.session_id == session_id)
+    else:
+        raise HTTPException(status_code=401, detail="Authentication or session_id required")
+
+    reminder = query.first()
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    for field in ["title", "description", "date", "start_time", "end_time", "priority", "category", "status"]:
+        if field in payload:
+            setattr(reminder, field, payload.get(field))
+    if 'due_at' in payload:
+        due = payload.get('due_at')
+        reminder.due_at = datetime.fromisoformat(due) if due else None
+    reminder.updated_at = datetime.now()
+    db.commit()
+    db.refresh(reminder)
+    return {"ok": True}
+
+
+@app.delete("/reminders/{reminder_id}")
+def delete_reminder(reminder_id: int, session_id: str | None = None, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
+    query = db.query(Reminder).filter(Reminder.id == reminder_id)
+    if current_user:
+        query = query.filter(Reminder.user_id == current_user.id)
+    elif session_id:
+        query = query.filter(Reminder.session_id == session_id)
+    else:
+        raise HTTPException(status_code=401, detail="Authentication or session_id required")
+
+    reminder = query.first()
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    db.delete(reminder)
+    db.commit()
+    return {"ok": True}
+
+
+@app.patch("/reminders/{reminder_id}/complete")
+def complete_reminder(reminder_id: int, session_id: str | None = None, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
+    query = db.query(Reminder).filter(Reminder.id == reminder_id)
+    if current_user:
+        query = query.filter(Reminder.user_id == current_user.id)
+    elif session_id:
+        query = query.filter(Reminder.session_id == session_id)
+    else:
+        raise HTTPException(status_code=401, detail="Authentication or session_id required")
+
+    reminder = query.first()
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    reminder.is_completed = True
+    reminder.status = "completed"
+    reminder.updated_at = datetime.now()
+    db.commit()
+    return {"ok": True}
 
 
 # -----------------------------
@@ -278,6 +579,15 @@ def list_todos(session_id: str | None = None, db: Session = Depends(get_db), cur
             "id": t.id,
             "title": t.title,
             "description": t.description,
+            "date": t.date,
+            "start_time": t.start_time,
+            "end_time": t.end_time,
+            "reminder": t.reminder,
+            "recurrence": t.recurrence,
+            "repeat_days": t.repeat_days,
+            "subtasks": t.subtasks,
+            "priority": t.priority,
+            "category": t.category,
             "is_completed": bool(t.is_completed),
             "due_at": t.due_at.isoformat() if t.due_at else None,
             "created_at": t.created_at.isoformat() if t.created_at else None,
@@ -292,6 +602,13 @@ def create_todo(payload: dict, session_id: str | None = None, db: Session = Depe
     if not title:
         raise HTTPException(status_code=400, detail="title is required")
     description = payload.get("description")
+    date = payload.get("date")
+    start_time = payload.get("start_time")
+    end_time = payload.get("end_time")
+    reminder = payload.get("reminder")
+    subtasks = payload.get("subtasks")
+    priority = payload.get("priority") or "Medium"
+    category = payload.get("category") or "Personal"
     due_at = None
     if payload.get("due_at"):
         try:
@@ -299,15 +616,57 @@ def create_todo(payload: dict, session_id: str | None = None, db: Session = Depe
         except Exception:
             raise HTTPException(status_code=400, detail="due_at must be ISO datetime")
     if current_user:
-        todo = TodoItem(user_id=current_user.id, title=title, description=description, due_at=due_at)
+        todo = TodoItem(
+            user_id=current_user.id,
+            title=title,
+            description=description,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+            reminder=reminder,
+            recurrence=payload.get('recurrence') or 'one_time',
+            repeat_days=payload.get('repeat_days'),
+            subtasks=subtasks,
+            priority=priority,
+            category=category,
+            due_at=due_at,
+        )
     elif session_id:
-        todo = TodoItem(session_id=session_id, title=title, description=description, due_at=due_at)
+        todo = TodoItem(
+            session_id=session_id,
+            title=title,
+            description=description,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+            reminder=reminder,
+            recurrence=payload.get('recurrence') or 'one_time',
+            repeat_days=payload.get('repeat_days'),
+            subtasks=subtasks,
+            priority=priority,
+            category=category,
+            due_at=due_at,
+        )
     else:
         raise HTTPException(status_code=401, detail="Authentication or session_id required")
     db.add(todo)
     db.commit()
     db.refresh(todo)
-    return {"id": todo.id, "title": todo.title, "is_completed": bool(todo.is_completed)}
+    return {
+        "id": todo.id,
+        "title": todo.title,
+        "description": todo.description,
+        "date": todo.date,
+        "start_time": todo.start_time,
+        "end_time": todo.end_time,
+        "reminder": todo.reminder,
+        "recurrence": todo.recurrence,
+        "repeat_days": todo.repeat_days,
+        "subtasks": todo.subtasks,
+        "priority": todo.priority,
+        "category": todo.category,
+        "is_completed": bool(todo.is_completed),
+    }
 
 
 @app.post("/todos/{todo_id}/complete")
@@ -361,7 +720,23 @@ def update_todo(todo_id: int, payload: dict, session_id: str | None = None, db: 
         todo.title = title
     if 'description' in payload:
         todo.description = payload.get('description')
-    if 'due_at' in payload:
+    if 'date' in payload:
+        todo.date = payload.get('date')
+    if 'start_time' in payload:
+        todo.start_time = payload.get('start_time')
+    if 'end_time' in payload:
+        todo.end_time = payload.get('end_time')
+    if 'reminder' in payload:
+        todo.reminder = payload.get('reminder')
+    if 'subtasks' in payload:
+        todo.subtasks = payload.get('subtasks')
+    if 'recurrence' in payload:
+        todo.recurrence = payload.get('recurrence') or 'one_time'
+    if 'repeat_days' in payload:
+        todo.repeat_days = payload.get('repeat_days')
+    if 'priority' in payload:
+        todo.priority = payload.get('priority') or 'Medium'
+    if 'category' in payload:
         due = payload.get('due_at')
         if due:
             try:
@@ -370,6 +745,9 @@ def update_todo(todo_id: int, payload: dict, session_id: str | None = None, db: 
                 raise HTTPException(status_code=400, detail='due_at must be ISO datetime')
         else:
             todo.due_at = None
+    if 'is_completed' in payload:
+        todo.is_completed = bool(payload.get('is_completed'))
+    todo.updated_at = datetime.now()
     db.commit()
     return {"ok": True}
 
@@ -404,7 +782,7 @@ def _deliver_due_reminders_once():
                     db.commit()
                     db.refresh(conv)
             if conv:
-                m = Message(conversation_id=conv.id, sender="assistant", message=msg)
+                m = Message(conversation_id=conv.id, role="assistant", content=msg)
                 db.add(m)
             r.is_notified = True
             db.commit()
@@ -448,7 +826,7 @@ def reminders_due(session_id: str | None = None, db: Session = Depends(get_db), 
                 db.commit()
                 db.refresh(conv)
         if conv:
-            m = Message(conversation_id=conv.id, sender="assistant", message=msg)
+            m = Message(conversation_id=conv.id, role="assistant", content=msg)
             db.add(m)
         r.is_notified = True
     db.commit()
@@ -543,10 +921,22 @@ def stream_audio(request: Request, video_id: str):
 # API ENDPOINT
 # -----------------------------
 @app.post("/voice")
-def voice_endpoint(request: Request, payload: VoiceRequest):
+def voice_endpoint(request: Request, payload: VoiceRequest, db: Session = Depends(get_db), current_user: User | None = Depends(get_optional_current_user)):
     origin = f"{request.url.scheme}://{request.url.netloc}"
     logger.info(f"Voice command received from {origin}: {payload.command}")
-    response = process_command(payload.command, origin, payload.device_lat, payload.device_lon)
+
+    context_key, pending_context = _get_pending_todo_context(current_user.id if current_user else None, payload.session_id, db)
+    if pending_context:
+        response = handle_todo_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
+    else:
+        intent, target = detect_intent(payload.command)
+        if intent == 'reminder':
+            response = handle_reminder_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
+        elif intent in ('todo', 'task_create'):
+            response = handle_todo_command(payload.command, db, current_user.id if current_user else None, payload.session_id)
+        else:
+            response = process_command(payload.command, origin, payload.device_lat, payload.device_lon)
+
     logger.info(f"Voice response: {response}")
     return response
 
