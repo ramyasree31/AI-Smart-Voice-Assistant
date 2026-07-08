@@ -1,0 +1,6 @@
+[build]
+
+[deploy]
+
+[variables]
+RAILPACK_BUILD_APT_PACKAGES = "portaudio19-dev"
