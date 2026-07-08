@@ -1,6 +1,6 @@
 SpeechRecognition
 pyttsx3
-
+yt_dlp
 openai
 python-dotenv
 requests
